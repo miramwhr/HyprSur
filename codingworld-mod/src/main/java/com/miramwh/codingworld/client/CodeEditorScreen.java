@@ -1,6 +1,7 @@
 package com.miramwh.codingworld.client;
 
 import com.miramwh.codingworld.api.ApiDocs;
+import com.miramwh.codingworld.CodingWorldMod;
 import com.miramwh.codingworld.net.ConsolePacket;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -382,8 +383,7 @@ public class CodeEditorScreen extends Screen {
     // =================================================================
     // input
     // =================================================================
-    @Override
-    public boolean charTyped(char c, int mods) {
+    private boolean charTyped0(char c, int mods) {
         if (helpMode && helpSearch.isFocused()) return helpSearch.charTyped(c, mods);
         if (c < 32 || c == 127) return false;
         beforeEdit(1);
@@ -393,8 +393,7 @@ public class CodeEditorScreen extends Screen {
         return true;
     }
 
-    @Override
-    public boolean keyPressed(int key, int scan, int mods) {
+    private boolean keyPressed0(int key, int scan, int mods) {
         boolean ctrl = hasControlDown(), shift = hasShiftDown();
         if (key == GLFW.GLFW_KEY_ESCAPE) {
             if (!popup.isEmpty()) {
@@ -615,7 +614,8 @@ public class CodeEditorScreen extends Screen {
                 default -> { }
             }
         }
-        return super.keyPressed(key, scan, mods);
+        if (getFocused() != null && getFocused() != helpSearch) setFocused(null);
+        return getFocused() == helpSearch && super.keyPressed(key, scan, mods);
     }
 
     private int columnAt(int row, int px) {
@@ -641,8 +641,7 @@ public class CodeEditorScreen extends Screen {
         return mx > lx + lw + 4 && mx < rx - 4;
     }
 
-    @Override
-    public boolean mouseClicked(double mx, double my, int button) {
+    private boolean mouseClicked0(double mx, double my, int button) {
         if (showExamples) {
             List<Examples.Example> ex = Examples.all();
             int ex0 = lx + 3 + 116, ey = ly + 24;
@@ -672,7 +671,11 @@ public class CodeEditorScreen extends Screen {
             }
             popup.clear();
         }
-        if (super.mouseClicked(mx, my, button)) return true;
+        if (super.mouseClicked(mx, my, button)) {
+            // A clicked button must not keep keyboard focus, or Space/Enter while typing would press it again.
+            if (getFocused() instanceof Button) setFocused(null);
+            return true;
+        }
         if (helpMode && mx >= rx && mx < rx + rw && my > ry + 48) {
             setFocused(null);
             for (int[] h : helpHits) {
@@ -717,8 +720,7 @@ public class CodeEditorScreen extends Screen {
         return super.mouseReleased(mx, my, button);
     }
 
-    @Override
-    public boolean mouseDragged(double mx, double my, int button, double dx, double dy) {
+    private boolean mouseDragged0(double mx, double my, int button, double dx, double dy) {
         if (draggingSel) {
             int row = Math.max(0, Math.min(lines.size() - 1, scrollY + (int) Math.floor((my - codeY - 2) / lineH)));
             int col = columnAt(row, (int) mx - codeX - 3 + scrollX);
@@ -735,8 +737,7 @@ public class CodeEditorScreen extends Screen {
         return super.mouseDragged(mx, my, button, dx, dy);
     }
 
-    @Override
-    public boolean mouseScrolled(double mx, double my, double delta) {
+    private boolean mouseScrolled0(double mx, double my, double delta) {
         if (mx >= lx && mx < lx + lw) {
             int visible = codeH / lineH;
             scrollY = Math.max(0, Math.min(Math.max(0, lines.size() - visible / 2), scrollY - (int) Math.signum(delta) * 3));
@@ -768,8 +769,7 @@ public class CodeEditorScreen extends Screen {
     // =================================================================
     // rendering
     // =================================================================
-    @Override
-    public void render(GuiGraphics g, int mouseX, int mouseY, float partial) {
+    private void render0(GuiGraphics g, int mouseX, int mouseY, float partial) {
         runButton.active = true;
         stopButton.active = ClientState.running;
         renderLeft(g, mouseX, mouseY);
@@ -1066,5 +1066,71 @@ public class CodeEditorScreen extends Screen {
         helpScroll = Math.min(helpScroll, Math.max(0, contentH - (ry + rh - top) + 10));
         g.fill(rx, ry + rh - 13, rx + rw, ry + rh, 0xFF11151C);
         g.drawString(font, "клик — вставить пример в код", rx + rw - 5 - font.width("клик — вставить пример в код"), ry + rh - 11, 0xFF888888, false);
+    }
+
+    // Any editor bug must never take the whole game down: log it, repair the state and carry on.
+    private void sanitize() {
+        if (lines.isEmpty()) lines.add("");
+        cy = Math.max(0, Math.min(cy, lines.size() - 1));
+        cx = Math.max(0, Math.min(cx, lines.get(cy).length()));
+        if (ay >= lines.size()) ay = -1;
+        if (ay >= 0) ax = Math.max(0, Math.min(ax, lines.get(ay).length()));
+        scrollY = Math.max(0, Math.min(scrollY, lines.size() - 1));
+        if (popupSel >= popup.size()) popupSel = 0;
+    }
+
+    private void editorError(Throwable e) {
+        CodingWorldMod.LOGGER.error("Code editor error", e);
+        try {
+            popup.clear();
+            ay = -1;
+            sanitize();
+        } catch (Throwable ignored) {
+            lines.clear();
+            lines.add("");
+            cy = cx = scrollY = 0;
+        }
+        if (System.currentTimeMillis() - lastErrorReport > 3000) {
+            lastErrorReport = System.currentTimeMillis();
+            ClientState.add("Ошибка редактора (игра продолжает работать): " + e, ConsolePacket.WARN);
+        }
+    }
+
+    private long lastErrorReport;
+
+    @Override
+    public boolean charTyped(char c, int mods) {
+        try { sanitize(); return charTyped0(c, mods); } catch (Throwable e) { editorError(e); return true; }
+    }
+
+    @Override
+    public boolean keyPressed(int key, int scan, int mods) {
+        try { sanitize(); return keyPressed0(key, scan, mods); } catch (Throwable e) { editorError(e); return true; }
+    }
+
+    @Override
+    public boolean mouseClicked(double mx, double my, int button) {
+        try { sanitize(); return mouseClicked0(mx, my, button); } catch (Throwable e) { editorError(e); return true; }
+    }
+
+    @Override
+    public boolean mouseDragged(double mx, double my, int button, double dx, double dy) {
+        try { sanitize(); return mouseDragged0(mx, my, button, dx, dy); } catch (Throwable e) { editorError(e); return true; }
+    }
+
+    @Override
+    public boolean mouseScrolled(double mx, double my, double delta) {
+        try { sanitize(); return mouseScrolled0(mx, my, delta); } catch (Throwable e) { editorError(e); return true; }
+    }
+
+    @Override
+    public void render(GuiGraphics g, int mouseX, int mouseY, float partial) {
+        try {
+            sanitize();
+            render0(g, mouseX, mouseY, partial);
+        } catch (Throwable e) {
+            com.mojang.blaze3d.systems.RenderSystem.disableScissor();
+            editorError(e);
+        }
     }
 }
