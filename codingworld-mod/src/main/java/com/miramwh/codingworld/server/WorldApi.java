@@ -1728,6 +1728,49 @@ final class WorldApi {
     // crafting recipes made by scripts
     // =====================================================================
     private static final Set<ResourceLocation> SCRIPT_RECIPES = ConcurrentHashMap.newKeySet();
+    /** Built-in recipes hidden because a script recipe uses the same pattern; ClearCrafts brings them back. */
+    private static final List<net.minecraft.world.item.crafting.Recipe<?>> HIDDEN_RECIPES = new ArrayList<>();
+    private boolean warnedSpectator = false;
+
+    /**
+     * Adds a script recipe. Any other crafting recipe with the same pattern (for example the vanilla torch recipe)
+     * is hidden first, otherwise the game could keep using it and the script recipe would never show up.
+     */
+    private void addScriptRecipe(net.minecraft.world.item.crafting.Recipe<?> recipe, List<ItemStack> layout) {
+        r.sync(() -> {
+            net.minecraft.core.NonNullList<ItemStack> items = net.minecraft.core.NonNullList.withSize(9, ItemStack.EMPTY);
+            for (int i = 0; i < layout.size() && i < 9; i++) items.set(i, layout.get(i));
+            var grid = new net.minecraft.world.inventory.TransientCraftingContainer(null, 3, 3, items);
+            ServerLevel level = level();
+            updateRecipes(all -> {
+                all.removeIf(x -> {
+                    if (x.getType() != net.minecraft.world.item.crafting.RecipeType.CRAFTING) return false;
+                    boolean same;
+                    try {
+                        same = ((net.minecraft.world.item.crafting.CraftingRecipe) x).matches(grid, level);
+                    } catch (RuntimeException e) {
+                        same = false;
+                    }
+                    if (!same) return false;
+                    if (!SCRIPT_RECIPES.remove(x.getId())) HIDDEN_RECIPES.add(x);
+                    return true;
+                });
+                all.add(recipe);
+            });
+            SCRIPT_RECIPES.add(recipe.getId());
+            ServerPlayer p = r.player();
+            if (p.isSpectator() && !warnedSpectator) {
+                warnedSpectator = true;
+                r.print("Подсказка: в режиме наблюдателя крафтить нельзя. Включи выживание: Command(\"gamemode survival\")", false);
+            }
+            return null;
+        });
+    }
+
+    private static ItemStack sample(net.minecraft.world.item.crafting.Ingredient ing) {
+        ItemStack[] st = ing.getItems();
+        return ing.isEmpty() || st.length == 0 ? ItemStack.EMPTY : st[0].copyWithCount(1);
+    }
     private static int recipeCounter = 0;
 
     private static net.minecraft.world.item.crafting.Ingredient ingredient(Object v) {
@@ -1773,11 +1816,9 @@ final class WorldApi {
             for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) grid.set(y * w + x, cells[(minY + y) * 3 + minX + x]);
             ResourceLocation id = new ResourceLocation("codingworld", "script_" + (++recipeCounter));
             var recipe = new net.minecraft.world.item.crafting.ShapedRecipe(id, "", net.minecraft.world.item.crafting.CraftingBookCategory.MISC, w, h, grid, out);
-            r.sync(() -> {
-                updateRecipes(all -> all.add(recipe));
-                SCRIPT_RECIPES.add(id);
-                return null;
-            });
+            List<ItemStack> layout = new ArrayList<>();
+            for (int y = 0; y < 3; y++) for (int x = 0; x < 3; x++) layout.add(x < w && y < h ? sample(grid.get(y * w + x)) : ItemStack.EMPTY);
+            addScriptRecipe(recipe, layout);
             return id.getPath();
         });
         def("CraftShapeless", a -> {
@@ -1792,18 +1833,20 @@ final class WorldApi {
             ItemStack out = result(a, 1, 2);
             ResourceLocation id = new ResourceLocation("codingworld", "script_" + (++recipeCounter));
             var recipe = new net.minecraft.world.item.crafting.ShapelessRecipe(id, "", net.minecraft.world.item.crafting.CraftingBookCategory.MISC, out, ings);
-            r.sync(() -> {
-                updateRecipes(all -> all.add(recipe));
-                SCRIPT_RECIPES.add(id);
-                return null;
-            });
+            List<ItemStack> layout = new ArrayList<>();
+            for (var ing : ings) layout.add(sample(ing));
+            addScriptRecipe(recipe, layout);
             return id.getPath();
         });
         def("ClearCrafts", a -> {
             return r.sync(() -> {
                 int n = SCRIPT_RECIPES.size();
-                updateRecipes(all -> all.removeIf(x -> SCRIPT_RECIPES.contains(x.getId())));
+                updateRecipes(all -> {
+                    all.removeIf(x -> SCRIPT_RECIPES.contains(x.getId()));
+                    all.addAll(HIDDEN_RECIPES);
+                });
                 SCRIPT_RECIPES.clear();
+                HIDDEN_RECIPES.clear();
                 return (long) n;
             });
         });
