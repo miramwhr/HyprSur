@@ -121,6 +121,9 @@ public class CodeEditorScreen extends Screen {
             pushUndo();
             setText("# Мой код\n");
         }).bounds(bx, ly + 3, 40, 20).build());
+        bx += 42;
+        addRenderableWidget(Button.builder(Component.literal("Книга"), b -> CodeTeachScreen.open(this)).bounds(bx, ly + 3, 40, 20)
+                .tooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal("Code Teach — всё о моде, функциях и примерах"))).build());
 
         int hx = rx + rw - 3;
         hx -= 56;
@@ -795,7 +798,7 @@ public class CodeEditorScreen extends Screen {
         // status
         String status = ClientState.running ? "● работает" : "○ ожидает";
         int sw = font.width(status);
-        if (lx + 3 + 64 + 52 + 66 + 42 + sw + 6 < lx + lw)
+        if (lx + 3 + 64 + 52 + 66 + 42 + 42 + sw + 6 < lx + lw)
             g.drawString(font, status, lx + lw - sw - 5, ly + 9, ClientState.running ? 0xFF55FF55 : 0xFF888888, false);
 
         int visible = codeH / lineH + 1;

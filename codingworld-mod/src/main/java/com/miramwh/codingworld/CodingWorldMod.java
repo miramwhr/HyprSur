@@ -1,5 +1,6 @@
 package com.miramwh.codingworld;
 
+import com.miramwh.codingworld.content.ModContent;
 import com.miramwh.codingworld.net.Network;
 import com.mojang.logging.LogUtils;
 import net.minecraftforge.fml.common.Mod;
@@ -14,6 +15,7 @@ public class CodingWorldMod {
 
     public CodingWorldMod() {
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::setup);
+        ModContent.register(FMLJavaModLoadingContext.get().getModEventBus());
     }
 
     private void setup(FMLCommonSetupEvent e) {

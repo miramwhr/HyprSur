@@ -56,6 +56,8 @@ public final class ScriptRunner implements Interpreter.Host {
     private final LinkedBlockingQueue<Event> events = new LinkedBlockingQueue<>(10_000);
     final Map<String, List<Object>> handlers = new ConcurrentHashMap<>();
     final List<Timer> timers = new CopyOnWriteArrayList<>();
+    /** WatchRedstone: {BlockPos, func, last power}. Powers are read on the server thread. */
+    final List<Object[]> watches = new CopyOnWriteArrayList<>();
     private final AtomicBoolean tickQueued = new AtomicBoolean();
     private int handlerDepth = 0;
     private final Interpreter interp;
@@ -135,12 +137,13 @@ public final class ScriptRunner implements Interpreter.Host {
         List<String> names = new ArrayList<>();
         for (var e : handlers.entrySet()) if (!e.getValue().isEmpty()) names.add(e.getKey());
         if (!timers.isEmpty()) names.add("таймеры");
+        if (!watches.isEmpty()) names.add("редстоун");
         return names;
     }
 
     boolean hasListeners() {
         for (List<Object> l : handlers.values()) if (!l.isEmpty()) return true;
-        return !timers.isEmpty();
+        return !timers.isEmpty() || !watches.isEmpty();
     }
 
     boolean wants(String event) {
@@ -161,6 +164,15 @@ public final class ScriptRunner implements Interpreter.Host {
                 if (!l.contains(fn)) l.add(fn);
             }
         }
+    }
+
+    /** AllClear(): forget every handler, timer and redstone watch, including functions named on_... */
+    void clearAll() {
+        handlers.clear();
+        timers.clear();
+        watches.clear();
+        for (String ev : EVENT_NAMES) interp.globals.vars().remove("on_" + ev);
+        CodingServer.sendStatus(this, true);
     }
 
     public void addHandler(String event, Object fn) {
@@ -189,6 +201,7 @@ public final class ScriptRunner implements Interpreter.Host {
                     }
                 }
             }
+            if (ev.type.equals("watch")) call(ev.args.get(0), ev.args.subList(1, ev.args.size()));
             List<Object> l = handlers.get(ev.type);
             if (l != null) for (Object fn : l) call(fn, ev.args);
         } finally {
@@ -215,6 +228,18 @@ public final class ScriptRunner implements Interpreter.Host {
             tickLock.notifyAll();
         }
         if (wantsTick() && tickQueued.compareAndSet(false, true)) events.offer(new Event("tick", List.of()));
+        if (!watches.isEmpty() && !stopped && !finished) {
+            ServerPlayer wp = server.getPlayerList().getPlayer(playerId);
+            if (wp != null) {
+                for (Object[] w : watches) {
+                    int power = WorldApi.redstonePower(wp.serverLevel(), (BlockPos) w[0]);
+                    if (power != (int) w[2]) {
+                        w[2] = power;
+                        events.offer(new Event("watch", List.of(w[1], (long) power)));
+                    }
+                }
+            }
+        }
         if (wants("player_move")) {
             ServerPlayer p = server.getPlayerList().getPlayer(playerId);
             if (p != null) {

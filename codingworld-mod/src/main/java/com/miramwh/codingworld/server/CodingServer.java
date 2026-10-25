@@ -136,6 +136,7 @@ public final class CodingServer {
             rules.getRule(GameRules.RULE_WEATHER_CYCLE).set(false, s);
             lv.setDayTime(6000);
             lv.setDefaultSpawnPos(new BlockPos(0, 0, 0), 0);
+            p.getInventory().add(new net.minecraft.world.item.ItemStack(com.miramwh.codingworld.content.ModContent.CODE_TEACH.get()));
         }
         Network.toPlayer(p, new OpenEditorPacket(first));
         console(p, first ? "Добро пожаловать в Кодинг-мир! Напишите код слева и нажмите ▶ Запуск (или Ctrl+Enter)."

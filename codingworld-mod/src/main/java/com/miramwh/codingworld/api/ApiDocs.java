@@ -166,11 +166,30 @@ public final class ApiDocs {
         f("Stop", "", "Останавливает программу.", "if PlayerY < -50:\n    Stop()");
 
         c("События");
-        f("OnEvent", "event, func=None", "Подписывает функцию на событие: tick, chat, block_break, block_place, mob_death, player_move, key. Можно как декоратор: @OnEvent(\"chat\").", "def hello(msg):\n    print(\"Ты написал:\", msg)\nOnEvent(\"chat\", hello)");
+        f("OnEvent", "event, func=None", "Подписывает функцию на событие: tick, chat, block_break, block_place, mob_death, player_move, key. AllClear() отписывает всё. Можно как декоратор: @OnEvent(\"chat\").", "def hello(msg):\n    print(\"Ты написал:\", msg)\nOnEvent(\"chat\", hello)");
         f("Every", "ticks, func", "Вызывает func каждые ticks тиков, пока программа работает.", "def spawn():\n    SummonMob(0, 0, 0, \"chicken\")\nEvery(40, spawn)");
         f("After", "ticks, func", "Вызывает func один раз через ticks тиков.", "After(100, lambda: Say(\"Прошло 5 секунд\"))");
 
+        f("AllClear", "", "Полностью очищает все события и таймеры: on_tick, on_chat и другие on_..., OnEvent, Every, After и WatchRedstone. Если больше ничего не слушается, программа завершится.", "Every(20, lambda: print(\"тик-так\"))\nwait(100)\nAllClear()\nprint(\"Все события выключены\")");
+
+        c("Редстоун");
+        f("RedstonePower", "x, y, z", "Сила редстоун-сигнала в точке (0–15). 0 — сигнала нет.", "if RedstonePower(0, 0, 0) >= 10:\n    print(\"Сильный сигнал!\")");
+        f("IsPowered", "x, y, z", "True, если блок получает редстоун-сигнал (запитан).", "if IsPowered(3, 0, 0):\n    SetBlock(3, 1, 0, \"glowstone\")");
+        f("HasRedstone", "x, y, z", "True, если в точке редстоун: пыль, рычаг, кнопка, факел, повторитель, лампа, поршень и т. п.", "if not HasRedstone(0, 0, 1):\n    SetBlock(0, 0, 1, \"redstone_wire\")");
+        f("SetSignal", "x, y, z, power=15", "Ставит сигнальный блок мода, который даёт сигнал силы power (0–15). Пыль рядом загорится.", "Line(1, 0, 0, 15, 0, 0, \"redstone_wire\")\nSetSignal(0, 0, 0, 8)   # с каждым блоком пыли сигнал слабее на 1");
+        f("Pulse", "x, y, z, power=15, ticks=10", "Короткий сигнал: сигнальный блок на ticks тиков, потом он исчезает сам.", "SetBlock(1, 0, 0, \"redstone_lamp\")\nPulse(0, 0, 0, 15, 20)   # лампа мигнёт на 1 секунду");
+        f("ClearSignal", "x, y, z", "Убирает сигнальный блок, поставленный SetSignal.", "SetSignal(0, 0, 0)\nwait(40)\nClearSignal(0, 0, 0)");
+        f("Toggle", "x, y, z", "Переключает рычаг, нажимает кнопку, открывает или закрывает дверь, люк, калитку, включает лампу. Возвращает новое состояние.", "SetBlock(0, 0, 0, \"lever[face=floor]\")\nToggle(0, 0, 0)   # рычаг включён");
+        f("SetPowered", "x, y, z, on=True", "Включает (on=True) или выключает рычаг, лампу, дверь, люк, кнопку.", "SetPowered(0, 0, 0, False)");
+        f("WatchRedstone", "x, y, z, func", "Следит за сигналом в точке и вызывает func(power), когда его сила меняется.", "def changed(power):\n    print(\"Сигнал:\", power)\nWatchRedstone(0, 0, 0, changed)");
+
+        c("Крафты");
+        f("Craft", "a, b, c, d, e, f, g, h, i, item, count=1", "Создаёт рецепт крафта 3×3. a–i — клетки верстака слева направо и сверху вниз, None или \"\" — пустая клетка. Работает и как craft(...). Рецепты живут, пока мир запущен.", "# алмаз из 9 блоков земли\nCraft(\"dirt\", \"dirt\", \"dirt\",\n      \"dirt\", \"dirt\", \"dirt\",\n      \"dirt\", \"dirt\", \"dirt\", \"diamond\")");
+        f("CraftShapeless", "items, item, count=1", "Бесформенный рецепт: предметы из списка в любых клетках верстака.", "CraftShapeless([\"sand\", \"gunpowder\"], \"tnt\", 2)");
+        f("ClearCrafts", "", "Удаляет все рецепты, созданные программой.", "ClearCrafts()");
+
         c("Полезное");
+        f("GiveBook", "", "Даёт игроку книгу Code Teach: в ней всё о моде, функциях и примерах.", "GiveBook()");
         f("Random", "a, b", "Случайное целое число от a до b включительно.", "x = Random(-10, 10)");
         f("RandomFloat", "", "Случайное дробное число от 0 до 1.", "if RandomFloat() < 0.5:\n    print(\"Орёл\")");
         f("Choice", "items", "Случайный элемент списка.", "SetBlock(0, 0, 0, Choice([\"red_wool\", \"blue_wool\", \"lime_wool\"]))");

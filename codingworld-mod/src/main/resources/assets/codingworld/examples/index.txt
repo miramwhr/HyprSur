@@ -12,3 +12,4 @@ trail.py|Волшебный след за игроком
 maze_game.py|Мини-игра: лабиринт с наградой
 arena.py|Арена: волны мобов
 functions.py|Свои функции и списки
+redstone_craft.py|Редстоун, крафты и AllClear

@@ -1,5 +1,7 @@
 {
   "generator.codingworld.coding": "Coding",
   "key.codingworld.editor": "Open code editor",
-  "key.categories.codingworld": "Coding World"
+  "key.categories.codingworld": "Coding World",
+  "item.codingworld.code_teach": "Code Teach",
+  "block.codingworld.signal": "Signal Block"
 }

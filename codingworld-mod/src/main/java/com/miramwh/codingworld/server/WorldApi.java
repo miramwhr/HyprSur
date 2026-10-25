@@ -111,6 +111,8 @@ final class WorldApi {
         registerMessages(in);
         registerTime(in);
         registerUtil(in);
+        registerRedstone();
+        registerCrafts();
         for (ApiDocs.Fn doc : ApiDocs.FUNCTIONS) {
             if (doc.name().equals("print")) continue;
             Impl impl = impls.get(doc.name());
@@ -118,6 +120,9 @@ final class WorldApi {
             List<String[]> params = Args.parseParams(doc.params());
             in.define(doc.name(), (it, a, kw) -> impl.call(Args.bind(doc, params, a, kw)));
         }
+        ApiDocs.Fn craftDoc = ApiDocs.BY_NAME.get("Craft");
+        List<String[]> craftParams = Args.parseParams(craftDoc.params());
+        in.define("craft", (it, a, kw) -> impls.get("Craft").call(Args.bind(craftDoc, craftParams, a, kw)));
     }
 
     private void def(String name, Impl impl) {
@@ -1596,6 +1601,203 @@ final class WorldApi {
                 case "PlayerCount" -> (long) r.server.getPlayerCount();
                 default -> null;
             };
+        });
+    }
+
+    // =====================================================================
+    // redstone
+    // =====================================================================
+    static int redstonePower(ServerLevel level, BlockPos p) {
+        BlockState st = level.getBlockState(p);
+        int power = level.getBestNeighborSignal(p);
+        if (st.hasProperty(BlockStateProperties.POWER)) power = Math.max(power, st.getValue(BlockStateProperties.POWER));
+        if (st.hasProperty(BlockStateProperties.POWERED) && st.getValue(BlockStateProperties.POWERED) && st.isSignalSource()) power = Math.max(power, 15);
+        return power;
+    }
+
+    private static int power(Args a, int i) {
+        int v = a.i(i);
+        if (v < 0 || v > 15) throw new PyError("ValueError", a.fn + "(): сила сигнала должна быть от 0 до 15, а получено " + v);
+        return v;
+    }
+
+    /** Switches a lever, button, door, trapdoor, gate or lamp. on == null toggles. Returns the new state. */
+    private static boolean setPowered(ServerLevel level, BlockPos p, Boolean on) {
+        BlockState st = level.getBlockState(p);
+        Block b = st.getBlock();
+        if (b instanceof net.minecraft.world.level.block.LeverBlock lever) {
+            boolean now = st.getValue(BlockStateProperties.POWERED);
+            if (on == null || on != now) st = lever.pull(st, level, p);
+            return st.getValue(BlockStateProperties.POWERED);
+        }
+        if (b instanceof net.minecraft.world.level.block.ButtonBlock button) {
+            if ((on == null || on) && !st.getValue(BlockStateProperties.POWERED)) button.press(st, level, p);
+            return true;
+        }
+        if (b instanceof net.minecraft.world.level.block.DoorBlock door) {
+            boolean open = on == null ? !st.getValue(BlockStateProperties.OPEN) : on;
+            door.setOpen(null, level, st, p, open);
+            return open;
+        }
+        for (var prop : List.of(BlockStateProperties.OPEN, BlockStateProperties.LIT, BlockStateProperties.POWERED)) {
+            if (st.hasProperty(prop)) {
+                boolean v = on == null ? !st.getValue(prop) : on;
+                level.setBlock(p, st.setValue(prop, v), Block.UPDATE_ALL);
+                return v;
+            }
+        }
+        throw new PyError("WorldError", "блок " + blockName(st) + " нельзя включить или выключить. Подходят рычаг, кнопка, дверь, люк, калитка, лампа");
+    }
+
+    private void registerRedstone() {
+        def("RedstonePower", a -> {
+            BlockPos p = pos(a, 0);
+            return r.sync(() -> (long) redstonePower(level(), p));
+        });
+        def("IsPowered", a -> {
+            BlockPos p = pos(a, 0);
+            return r.sync(() -> level().hasNeighborSignal(p) || redstonePower(level(), p) > 0);
+        });
+        def("HasRedstone", a -> {
+            BlockPos p = pos(a, 0);
+            return r.sync(() -> {
+                BlockState st = level().getBlockState(p);
+                return st.is(Blocks.REDSTONE_WIRE) || st.isSignalSource() || st.hasProperty(BlockStateProperties.POWERED)
+                        || st.hasProperty(BlockStateProperties.POWER) || st.is(Blocks.REDSTONE_LAMP) || st.is(Blocks.PISTON) || st.is(Blocks.STICKY_PISTON);
+            });
+        });
+        def("SetSignal", a -> {
+            BlockPos p = pos(a, 0);
+            int pw = power(a, 3);
+            r.async(() -> level().setBlock(p, com.miramwh.codingworld.content.ModContent.SIGNAL.get().defaultBlockState()
+                    .setValue(com.miramwh.codingworld.content.SignalBlock.POWER, pw), Block.UPDATE_ALL));
+            return null;
+        });
+        def("Pulse", a -> {
+            BlockPos p = pos(a, 0);
+            int pw = power(a, 3);
+            int ticks = Math.max(1, Math.min(72000, a.i(4)));
+            r.async(() -> {
+                Block sig = com.miramwh.codingworld.content.ModContent.SIGNAL.get();
+                level().setBlock(p, sig.defaultBlockState().setValue(com.miramwh.codingworld.content.SignalBlock.POWER, pw), Block.UPDATE_ALL);
+                level().scheduleTick(p, sig, ticks);
+            });
+            return null;
+        });
+        def("ClearSignal", a -> {
+            BlockPos p = pos(a, 0);
+            return r.sync(() -> level().getBlockState(p).getBlock() instanceof com.miramwh.codingworld.content.SignalBlock && level().removeBlock(p, false));
+        });
+        def("Toggle", a -> {
+            BlockPos p = pos(a, 0);
+            return r.sync(() -> setPowered(level(), p, null));
+        });
+        def("SetPowered", a -> {
+            BlockPos p = pos(a, 0);
+            boolean on = a.b(3);
+            return r.sync(() -> setPowered(level(), p, on));
+        });
+        def("WatchRedstone", a -> {
+            BlockPos p = pos(a, 0);
+            if (!(a.o(3) instanceof com.miramwh.codingworld.py.Values.PyCallable))
+                throw new PyError("TypeError", "WatchRedstone(): четвёртый аргумент — функция (без скобок!)");
+            int now = r.sync(() -> redstonePower(level(), p));
+            r.watches.add(new Object[]{p, a.o(3), now});
+            CodingServer.sendStatus(r, true);
+            return null;
+        });
+        def("AllClear", a -> {
+            r.clearAll();
+            return null;
+        });
+        def("GiveBook", a -> {
+            r.sync(() -> r.player().getInventory().add(new ItemStack(com.miramwh.codingworld.content.ModContent.CODE_TEACH.get())));
+            return null;
+        });
+    }
+
+    // =====================================================================
+    // crafting recipes made by scripts
+    // =====================================================================
+    private static final Set<ResourceLocation> SCRIPT_RECIPES = ConcurrentHashMap.newKeySet();
+    private static int recipeCounter = 0;
+
+    private static net.minecraft.world.item.crafting.Ingredient ingredient(Object v) {
+        if (v == null) return net.minecraft.world.item.crafting.Ingredient.EMPTY;
+        String s = Py.str(v).trim();
+        if (s.isEmpty() || s.equals("air") || s.equals("minecraft:air")) return net.minecraft.world.item.crafting.Ingredient.EMPTY;
+        return net.minecraft.world.item.crafting.Ingredient.of(item(s));
+    }
+
+    private ItemStack result(Args a, int itemIdx, int countIdx) {
+        Item it = item(a.s(itemIdx));
+        if (it == Items.AIR) throw new PyError("ValueError", a.fn + "(): результат крафта не может быть воздухом");
+        int count = Math.max(1, Math.min(64, a.i(countIdx)));
+        return new ItemStack(it, count);
+    }
+
+    /** Replaces the server's recipes and tells every client. Must run on the server thread. */
+    private void updateRecipes(java.util.function.Consumer<List<net.minecraft.world.item.crafting.Recipe<?>>> change) {
+        var rm = r.server.getRecipeManager();
+        List<net.minecraft.world.item.crafting.Recipe<?>> all = new ArrayList<>(rm.getRecipes());
+        change.accept(all);
+        rm.replaceRecipes(all);
+        r.server.getPlayerList().broadcastAll(new net.minecraft.network.protocol.game.ClientboundUpdateRecipesPacket(rm.getRecipes()));
+    }
+
+    private void registerCrafts() {
+        def("Craft", a -> {
+            net.minecraft.world.item.crafting.Ingredient[] cells = new net.minecraft.world.item.crafting.Ingredient[9];
+            for (int i = 0; i < 9; i++) cells[i] = ingredient(a.o(i));
+            ItemStack out = result(a, 9, 10);
+            int minX = 3, minY = 3, maxX = -1, maxY = -1;
+            for (int i = 0; i < 9; i++) {
+                if (cells[i].isEmpty()) continue;
+                minX = Math.min(minX, i % 3);
+                maxX = Math.max(maxX, i % 3);
+                minY = Math.min(minY, i / 3);
+                maxY = Math.max(maxY, i / 3);
+            }
+            if (maxX < 0) throw new PyError("ValueError", "Craft(): все клетки пустые — положите хотя бы один предмет");
+            int w = maxX - minX + 1, h = maxY - minY + 1;
+            net.minecraft.core.NonNullList<net.minecraft.world.item.crafting.Ingredient> grid =
+                    net.minecraft.core.NonNullList.withSize(w * h, net.minecraft.world.item.crafting.Ingredient.EMPTY);
+            for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) grid.set(y * w + x, cells[(minY + y) * 3 + minX + x]);
+            ResourceLocation id = new ResourceLocation("codingworld", "script_" + (++recipeCounter));
+            var recipe = new net.minecraft.world.item.crafting.ShapedRecipe(id, "", net.minecraft.world.item.crafting.CraftingBookCategory.MISC, w, h, grid, out);
+            r.sync(() -> {
+                updateRecipes(all -> all.add(recipe));
+                SCRIPT_RECIPES.add(id);
+                return null;
+            });
+            return id.getPath();
+        });
+        def("CraftShapeless", a -> {
+            if (!(a.o(0) instanceof PyList list) || list.isEmpty() || list.size() > 9)
+                throw new PyError("TypeError", "CraftShapeless(): первый аргумент — список от 1 до 9 предметов, например [\"sand\", \"gunpowder\"]");
+            net.minecraft.core.NonNullList<net.minecraft.world.item.crafting.Ingredient> ings = net.minecraft.core.NonNullList.create();
+            for (Object o : list) {
+                var ing = ingredient(o);
+                if (!ing.isEmpty()) ings.add(ing);
+            }
+            if (ings.isEmpty()) throw new PyError("ValueError", "CraftShapeless(): список пустой");
+            ItemStack out = result(a, 1, 2);
+            ResourceLocation id = new ResourceLocation("codingworld", "script_" + (++recipeCounter));
+            var recipe = new net.minecraft.world.item.crafting.ShapelessRecipe(id, "", net.minecraft.world.item.crafting.CraftingBookCategory.MISC, out, ings);
+            r.sync(() -> {
+                updateRecipes(all -> all.add(recipe));
+                SCRIPT_RECIPES.add(id);
+                return null;
+            });
+            return id.getPath();
+        });
+        def("ClearCrafts", a -> {
+            return r.sync(() -> {
+                int n = SCRIPT_RECIPES.size();
+                updateRecipes(all -> all.removeIf(x -> SCRIPT_RECIPES.contains(x.getId())));
+                SCRIPT_RECIPES.clear();
+                return (long) n;
+            });
         });
     }
 }
