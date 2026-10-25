@@ -181,7 +181,7 @@ public final class ApiDocs {
         f("ClearSignal", "x, y, z", "Убирает сигнальный блок, поставленный SetSignal.", "SetSignal(0, 0, 0)\nwait(40)\nClearSignal(0, 0, 0)");
         f("Toggle", "x, y, z", "Переключает рычаг, нажимает кнопку, открывает или закрывает дверь, люк, калитку, включает лампу. Возвращает новое состояние.", "SetBlock(0, 0, 0, \"lever[face=floor]\")\nToggle(0, 0, 0)   # рычаг включён");
         f("SetPowered", "x, y, z, on=True", "Включает (on=True) или выключает рычаг, лампу, дверь, люк, кнопку.", "SetPowered(0, 0, 0, False)");
-        f("WatchRedstone", "x, y, z, func", "Следит за сигналом в точке и вызывает func(power), когда его сила меняется.", "def changed(power):\n    print(\"Сигнал:\", power)\nWatchRedstone(0, 0, 0, changed)");
+        f("WatchRedstone", "x, y, z, func=None", "Следит за сигналом в точке и вызывает func(power), когда его сила меняется. Без func просто пишет новую силу в консоль.", "def changed(power):\n    print(\"Сигнал:\", power)\nWatchRedstone(0, 0, 0, changed)");
 
         c("Крафты");
         f("Craft", "a, b, c, d, e, f, g, h, i, item, count=1", "Создаёт рецепт крафта 3×3. a–i — клетки верстака слева направо и сверху вниз, None или \"\" — пустая клетка. Работает и как craft(...). Рецепты живут, пока мир запущен.", "# алмаз из 9 блоков земли\nCraft(\"dirt\", \"dirt\", \"dirt\",\n      \"dirt\", \"dirt\", \"dirt\",\n      \"dirt\", \"dirt\", \"dirt\", \"diamond\")");

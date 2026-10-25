@@ -1699,10 +1699,18 @@ final class WorldApi {
         });
         def("WatchRedstone", a -> {
             BlockPos p = pos(a, 0);
-            if (!(a.o(3) instanceof com.miramwh.codingworld.py.Values.PyCallable))
-                throw new PyError("TypeError", "WatchRedstone(): четвёртый аргумент — функция (без скобок!)");
+            Object fn = a.o(3);
+            if (fn == null) {
+                String where = "(" + p.getX() + ", " + p.getY() + ", " + p.getZ() + ")";
+                fn = new com.miramwh.codingworld.py.Values.Builtin("WatchRedstone.print", (it, args, kw) -> {
+                    r.print("Редстоун " + where + ": сила " + Py.str(args.get(0)), false);
+                    return null;
+                });
+            } else if (!(fn instanceof com.miramwh.codingworld.py.Values.PyCallable)) {
+                throw new PyError("TypeError", "WatchRedstone(): четвёртый аргумент — имя функции без скобок, например WatchRedstone(0, 0, 0, changed)");
+            }
             int now = r.sync(() -> redstonePower(level(), p));
-            r.watches.add(new Object[]{p, a.o(3), now});
+            r.watches.add(new Object[]{p, fn, now});
             CodingServer.sendStatus(r, true);
             return null;
         });
