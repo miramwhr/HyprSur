@@ -1,0 +1,14 @@
+welcome.py|Привет, Кодинг-мир!
+house.py|Деревня из домиков
+tower_loop.py|Цикл: радужная башня
+mobs_condition.py|Мобы по условию (if)
+player_vars.py|Следим за игроком (PlayerX, PlayerY)
+pyramid_city.py|Пирамиды, шары и купола
+spiral.py|Спиральная лестница (math)
+zoo.py|Зоопарк с загонами
+chat_commands.py|Команды в чате (события)
+firework_show.py|Салют и смена времени
+trail.py|Волшебный след за игроком
+maze_game.py|Мини-игра: лабиринт с наградой
+arena.py|Арена: волны мобов
+functions.py|Свои функции и списки
