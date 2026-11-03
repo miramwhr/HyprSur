@@ -1,0 +1,33 @@
+# Динамические обои как на macOS: картинки привязаны ко времени суток или к солнцу.
+# Запуск: surw dynamic examples/day.toml
+# Посмотреть расписание на сегодня: surw dynamic examples/day.toml --print
+
+# Где ты находишься (для восхода/заката). Без этого время солнца угадывается по часовому поясу.
+latitude = 55.75
+longitude = 37.62
+
+# Как переходить между картинками: fade, wipe, slide, grow, outer, dissolve, random
+transition = "fade"
+# "full" = плавно перетекать весь промежуток между картинками (как на macOS),
+# или конкретное время перед каждой картинкой, например "1h" или "30m"
+transition_duration = "full"
+
+[[frame]]
+time = "dawn"            # гражданские сумерки утром
+image = "~/Pictures/walls/dawn.jpg"
+
+[[frame]]
+time = "sunrise+1h"      # через час после восхода
+image = "~/Pictures/walls/morning.jpg"
+
+[[frame]]
+time = "13:00"           # обычное время по часам
+image = "~/Pictures/walls/day.jpg"
+
+[[frame]]
+sun = { altitude = 5, azimuth = 240 }   # как "solar" обои macOS: солнце низко на западе
+image = "~/Pictures/walls/evening.jpg"
+
+[[frame]]
+time = "dusk+30m"
+image = "~/Pictures/walls/night.jpg"
