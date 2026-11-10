@@ -5,610 +5,525 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>HyprSur</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="description" content="HyprSur: оболочка для Hyprland в духе macOS. Что уже сделано, скриншоты приложений и установка беты 15V03B00NR.">
+<meta name="description" content="HyprSur: рабочий стол в духе macOS для Hyprland. Живая демонстрация, приложения, устройство системы и установка беты 15V03B00NR.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap">
-<style>
-/* Раскладка: слева узкая колонка-оглавление, как боковое меню Finder; справа одна колонка текста. */
-:root {
-  --bg: #f4f5f3;
-  --panel: #ffffff;
-  --desk: #e6e9e4;
-  --fg: #171a17;
-  --muted: #5d655e;
-  --line: #d6dad4;
-  --accent: #1c8a3d;
-  --accent-soft: #dcefe0;
-  --on-accent: #ffffff;
-  --code-bg: #1b1e1b;
-  --code-fg: #e4e9e3;
-  --code-muted: #8d978e;
-  --warn: #9a5b00;
-  --warn-soft: #fbefd6;
-  --shadow: 0 1px 2px rgba(20, 30, 20, .06), 0 12px 32px rgba(20, 30, 20, .10);
-  --sans: "Golos Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
-  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #131513; --panel: #1b1e1b; --desk: #0d0f0d; --fg: #e9ece8; --muted: #9aa39b;
-    --line: #2c312c; --accent: #46c768; --accent-soft: #1b3323; --on-accent: #08130b;
-    --code-bg: #0b0d0b; --code-fg: #e4e9e3; --code-muted: #7f8980;
-    --warn: #e8b45a; --warn-soft: #2e2613;
-    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 12px 32px rgba(0, 0, 0, .45);
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #131513; --panel: #1b1e1b; --desk: #0d0f0d; --fg: #e9ece8; --muted: #9aa39b;
-  --line: #2c312c; --accent: #46c768; --accent-soft: #1b3323; --on-accent: #08130b;
-  --code-bg: #0b0d0b; --code-fg: #e4e9e3; --code-muted: #7f8980;
-  --warn: #e8b45a; --warn-soft: #2e2613;
-  --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 12px 32px rgba(0, 0, 0, .45);
-  color-scheme: dark;
-}
-
-*, *::before, *::after { box-sizing: border-box; }
-html { scroll-behavior: smooth; scroll-padding-top: 24px; }
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--fg);
-  font: 400 17px/1.6 var(--sans);
-  -webkit-text-size-adjust: 100%;
-}
-img { max-width: 100%; }
-a { color: var(--accent); text-underline-offset: 3px; }
-code, kbd, pre { font-family: var(--mono); }
-code { font-size: .88em; background: var(--desk); padding: .1em .35em; border-radius: 4px; overflow-wrap: anywhere; }
-button { font: inherit; color: inherit; cursor: pointer; }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-
-.shell {
-  display: grid;
-  grid-template-columns: 210px minmax(0, 1fr);
-  gap: 56px;
-  max-width: 1180px;
-  margin: 0 auto;
-  padding-block: 40px 80px;
-  padding-left: max(16px, env(safe-area-inset-left, 0px));
-  padding-right: max(16px, env(safe-area-inset-right, 0px));
-}
-
-/* оглавление */
-.side { position: sticky; top: calc(24px + env(safe-area-inset-top, 0px)); align-self: start; display: flex; flex-direction: column; gap: 22px; }
-.brand { font-weight: 800; font-size: 22px; letter-spacing: -.02em; color: var(--fg); text-decoration: none; }
-.brand span { color: var(--accent); }
-.toc { display: flex; flex-direction: column; gap: 2px; }
-.toc a {
-  display: block; padding: 6px 10px; border-radius: 7px;
-  color: var(--muted); text-decoration: none; font-size: 15px; font-weight: 500;
-}
-.toc a:hover { color: var(--fg); background: var(--desk); }
-.toc a.on { color: var(--on-accent); background: var(--accent); }
-.side-tools { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
-.ghost {
-  border: 1px solid var(--line); background: var(--panel); border-radius: 7px;
-  padding: 6px 10px; font-size: 14px; font-weight: 500;
-}
-.ghost:hover { border-color: var(--muted); }
-.side small { color: var(--muted); font-size: 13px; line-height: 1.45; }
-
-main { display: flex; flex-direction: column; gap: 88px; min-width: 0; }
-section { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
-h1, h2, h3 { margin: 0; text-wrap: balance; letter-spacing: -.02em; line-height: 1.12; }
-h1 { font-size: clamp(44px, 8vw, 84px); font-weight: 800; letter-spacing: -.045em; }
-h2 { font-size: clamp(28px, 4vw, 38px); font-weight: 700; }
-h3 { font-size: 19px; font-weight: 700; letter-spacing: -.01em; }
-p { margin: 0; max-width: 66ch; }
-.lead { font-size: 21px; line-height: 1.5; max-width: 34em; }
-.muted { color: var(--muted); }
-
-/* шапка */
-.top { gap: 26px; }
-.actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-.btn {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 11px 18px; border-radius: 9px; border: 1px solid transparent;
-  background: var(--accent); color: var(--on-accent);
-  font-weight: 600; font-size: 16px; text-decoration: none;
-}
-.btn:hover { filter: brightness(1.08); }
-.btn.second { background: var(--panel); color: var(--fg); border-color: var(--line); }
-.btn.second:hover { filter: none; border-color: var(--muted); }
-.btn small { font-weight: 500; opacity: .8; font-size: 13px; }
-
-/* версия */
-.ver { display: flex; flex-direction: column; gap: 12px; padding: 20px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; max-width: 620px; }
-.ver-label { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
-.ver-row { display: flex; flex-wrap: wrap; gap: 4px; }
-.seg {
-  font-family: var(--mono); font-weight: 700; font-size: clamp(22px, 5vw, 34px);
-  padding: 4px 10px; border-radius: 7px; border: 1px solid var(--line); background: var(--bg);
-  font-variant-numeric: tabular-nums;
-}
-.seg:hover { border-color: var(--accent); }
-.seg[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
-.ver-out { min-height: 3.2em; font-size: 16px; }
-.ver-out b { font-family: var(--mono); }
-
-/* аксиомы */
-.axioms { list-style: none; margin: 0; padding: 0; counter-reset: ax; display: flex; flex-direction: column; border-top: 1px solid var(--line); }
-.axioms li {
-  counter-increment: ax;
-  display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 4px 12px;
-  padding: 18px 0; border-bottom: 1px solid var(--line);
-}
-.axioms li::before {
-  content: "A" counter(ax);
-  font-family: var(--mono); font-weight: 700; font-size: 15px; color: var(--accent); padding-top: 3px;
-}
-.axioms h3 { grid-column: 2; }
-.axioms p { grid-column: 2; color: var(--muted); font-size: 16px; }
-
-/* приложения */
-.apps { display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 18px; }
-.app-list { display: flex; flex-direction: column; gap: 2px; }
-.app-list button {
-  text-align: left; border: 0; background: none; padding: 7px 10px; border-radius: 7px;
-  font-size: 15.5px; font-weight: 500; display: flex; justify-content: space-between; gap: 8px; align-items: baseline;
-}
-.app-list button span { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
-.app-list button:hover { background: var(--desk); }
-.app-list button[aria-selected="true"] { background: var(--accent-soft); color: var(--fg); font-weight: 700; }
-.viewer { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
-.stage {
-  position: relative; background: var(--desk); border: 1px solid var(--line); border-radius: 12px;
-  padding: 26px; display: flex; align-items: center; justify-content: center; min-height: 300px;
-}
-.shot { border: 0; padding: 0; background: none; display: block; border-radius: 12px; cursor: zoom-in; line-height: 0; }
-.shot img { display: block; max-height: 480px; width: auto; border-radius: 12px; box-shadow: var(--shadow); }
-.viewer-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
-.pair { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); }
-.pair button { border: 0; background: none; padding: 6px 12px; font-size: 14px; font-weight: 500; }
-.pair button + button { border-left: 1px solid var(--line); }
-.pair button[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
-.pair button:disabled { color: var(--muted); opacity: .5; cursor: default; }
-.app-info { display: flex; flex-direction: column; gap: 10px; }
-.facts { margin: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 16px; font-size: 14.5px; }
-.facts dt { color: var(--muted); }
-.facts dd { margin: 0; font-family: var(--mono); font-size: 13px; overflow-wrap: anywhere; }
-
-/* таблица системы */
-.scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
-table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 15.5px; }
-th, td { text-align: left; vertical-align: top; padding: 12px 16px; border-bottom: 1px solid var(--line); }
-tr:last-child td { border-bottom: 0; }
-th { font-size: 13px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 600; }
-td:first-child { font-weight: 700; white-space: nowrap; }
-td:nth-child(2) { font-family: var(--mono); font-size: 13px; color: var(--muted); white-space: nowrap; }
-
-.todo { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
-.todo li { padding-left: 22px; position: relative; max-width: 66ch; }
-.todo li::before { content: ""; position: absolute; left: 0; top: .5em; width: 11px; height: 11px; border: 2px solid var(--muted); border-radius: 3px; }
-
-/* установка */
-.note { background: var(--warn-soft); color: var(--fg); border-radius: 10px; padding: 14px 16px; max-width: 66ch; font-size: 16px; }
-.note b { color: var(--warn); }
-.steps { list-style: none; margin: 0; padding: 0; counter-reset: st; display: flex; flex-direction: column; gap: 26px; }
-.steps > li { counter-increment: st; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.steps h3::before { content: counter(st) ". "; color: var(--accent); }
-.cmd { position: relative; background: var(--code-bg); border-radius: 10px; }
-.cmd pre { margin: 0; padding: 16px 92px 16px 16px; overflow-x: auto; color: var(--code-fg); font-size: 13.5px; line-height: 1.65; }
-.cmd pre .c { color: var(--code-muted); }
-.copy {
-  position: absolute; top: 9px; right: 9px;
-  border: 1px solid #3a403a; background: #262a26; color: #e4e9e3;
-  border-radius: 6px; padding: 4px 9px; font-size: 12.5px; font-family: var(--sans); font-weight: 500;
-}
-.copy:hover { background: #333933; }
-.copy.done { background: #1c8a3d; border-color: #1c8a3d; color: #fff; }
-
-footer { border-top: 1px solid var(--line); padding-top: 22px; display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 15px; color: var(--muted); }
-
-/* увеличенный скриншот */
-dialog { border: 0; padding: 0; background: none; max-width: 96vw; max-height: 96vh; }
-dialog::backdrop { background: rgba(8, 10, 8, .82); }
-dialog img { display: block; max-width: 96vw; max-height: 88vh; border-radius: 12px; }
-dialog form { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-top: 10px; color: #e4e9e3; font-size: 14px; }
-dialog button { border: 1px solid #4a514a; background: #1b1e1b; color: #e4e9e3; border-radius: 7px; padding: 6px 12px; font-size: 14px; }
-
-@media (max-width: 860px) {
-  .shell { grid-template-columns: minmax(0, 1fr); gap: 28px; padding-block: 20px 60px; }
-  .side { position: static; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
-  .toc { flex-direction: row; flex-wrap: wrap; order: 3; width: 100%; gap: 4px; }
-  .toc a { padding: 5px 9px; font-size: 14.5px; }
-  .side small { display: none; }
-  .side-tools { flex-direction: row; }
-  main { gap: 64px; }
-  .apps { grid-template-columns: minmax(0, 1fr); }
-  .app-list { flex-direction: row; flex-wrap: wrap; gap: 4px; }
-  .app-list button { border: 1px solid var(--line); background: var(--panel); padding: 5px 10px; font-size: 14.5px; }
-  .app-list button span { display: none; }
-  .stage { padding: 14px; min-height: 0; }
-  .lead { font-size: 19px; }
-}
-@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
-</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="site.css">
 </head>
 <body>
-<div class="shell">
 
-  <aside class="side">
-    <a class="brand" href="#top">Hypr<span>Sur</span></a>
-    <nav class="toc" aria-label="Разделы">
+<nav class="lnav" aria-label="Разделы">
+  <div class="lnav-in">
+    <a class="lnav-name" href="#top">HyprSur</a>
+    <div class="lnav-links" id="lnav">
       <a href="#axioms">Аксиомы</a>
       <a href="#apps">Приложения</a>
       <a href="#system">Система</a>
-      <a href="#todo">Не готово</a>
-      <a href="#install">Установить</a>
-    </nav>
-    <div class="side-tools">
-      <button class="ghost" id="theme" type="button">Тёмная тема</button>
+      <a href="#anatomy">Устройство</a>
+      <a href="#wallpaper">Обои</a>
+      <a href="#versions">Версии</a>
+      <a href="#dev">Разработчикам</a>
+      <a href="#plan">Планы</a>
+      <a href="#faq">Вопросы</a>
     </div>
-    <small>Бета 0.3 от 23 октября 2026.<br>Только для разработчиков.</small>
-  </aside>
+    <button class="icon-btn" id="theme" type="button" aria-label="Сменить тему сайта">
+      <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1Zm0 12.5v-11a5.5 5.5 0 0 1 0 11Z"/></svg>
+    </button>
+    <a class="pill" href="#install">Установить</a>
+  </div>
+</nav>
 
-  <main>
+<main>
 
-    <section class="top" id="top">
-      <h1>HyprSur</h1>
-      <p class="lead">Оболочка для Hyprland, которая выглядит и устроена как macOS. Свой Dock, строка меню, Пункт управления, Настройки, Finder и ещё десяток приложений. Здесь записано, что из этого уже работает.</p>
-      <div class="actions">
+<section class="band hero" id="top">
+  <div class="in">
+    <div class="head">
+      <p class="eyebrow">Бета 0.3 для Hyprland</p>
+      <h1>Hypr<span>Sur</span></h1>
+      <p class="tag">Рабочий стол как на Mac. Только это Linux, и всё можно открыть и поправить.</p>
+      <div class="cta">
         <a class="btn" href="#install">Установить</a>
-        <a class="btn second" href="https://github.com/miramwhr/HyprSur/releases/download/BETA/Beta.Settings.15V03B00NR.zip">Скачать бету <small>.zip, 172 МБ</small></a>
-        <a class="btn second" href="https://github.com/miramwhr/HyprSur">GitHub</a>
+        <a class="btn line" href="https://github.com/miramwhr/HyprSur">Исходники на GitHub</a>
+      </div>
+    </div>
+
+    <div class="desk" id="desk" aria-label="Демонстрация рабочего стола HyprSur">
+      <div class="mbar glass">
+        <button type="button" class="logo" id="m-logo" aria-haspopup="true" aria-expanded="false" aria-label="Меню HyprSur">HS</button>
+        <span class="app" id="m-app">Finder</span>
+        <span class="gap"></span>
+        <button type="button" id="m-search" aria-label="Spotlight">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3.5 3.5"/></svg>
+        </button>
+        <button type="button" id="m-cc" aria-haspopup="true" aria-expanded="false" aria-label="Пункт управления">
+          <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect x="1" y="2.5" width="14" height="4.6" rx="2.3"/><circle cx="11.6" cy="4.8" r="1.5" fill="var(--chrome-solid)"/><rect x="1" y="8.9" width="14" height="4.6" rx="2.3" opacity=".55"/><circle cx="4.4" cy="11.2" r="1.5" fill="var(--chrome-solid)"/></svg>
+        </button>
+        <span class="clock"><span class="date" id="m-date"></span> <span id="m-time"></span></span>
       </div>
 
-      <div class="ver">
-        <span class="ver-label">Текущая версия. Нажми на часть, чтобы прочитать её</span>
-        <div class="ver-row" id="ver-row" role="group" aria-label="Части номера версии"></div>
-        <p class="ver-out" id="ver-out" aria-live="polite"></p>
+      <div class="pop glass menu" id="menu" role="menu" hidden>
+        <button type="button" role="menuitem" data-act="about">Об этой системе</button>
+        <hr>
+        <button type="button" role="menuitem" data-act="settings">Настройки…</button>
+        <button type="button" role="menuitem" data-act="launchpad">Launchpad</button>
+        <button type="button" role="menuitem" data-act="spotlight">Spotlight</button>
+        <hr>
+        <button type="button" role="menuitem" data-act="closeall">Закрыть все окна</button>
+        <button type="button" role="menuitem" data-act="reset">Вернуть как было</button>
       </div>
-    </section>
 
-    <section id="axioms">
-      <h2>Аксиомы</h2>
-      <p>Правила, которые в проекте не обсуждаются. Всё остальное из них следует. Каждое можно проверить по коду беты.</p>
-      <ol class="axioms">
-        <li>
-          <h3>Система живёт в одной папке</h3>
-          <p>Всё лежит в <code>/Hyprsur</code> и разложено как на маке: <code>System/Applications</code>, <code>System/Library/CoreServices</code>, <code>Library/Preferences</code>. Приложение это папка <code>.app</code> с <code>Contents/MacOS</code>, <code>Resources</code> и <code>Info.plist</code>.</p>
-        </li>
-        <li>
-          <h3>Настройка это plist</h3>
-          <p>Никаких своих форматов конфигов. Настройки пишут ключи в <code>.GlobalPreferences.plist</code> и <code>com.hyprsur.*.plist</code>, запись атомарная: временный файл, потом замена.</p>
-        </li>
-        <li>
-          <h3>Ничего не перезапускается</h3>
-          <p>Приложения раз в секунду смотрят на время изменения plist и своих стилей. Сменил акцент или тему в Настройках, и открытые окна перекрасились сами.</p>
-        </li>
-        <li>
-          <h3>Вид лежит отдельно от кода</h3>
-          <p>Код задаёт только структуру и CSS-классы. Цвета, отступы, скругления и тени находятся в <code>style.css</code> рядом с приложением, его можно править на ходу.</p>
-        </li>
-        <li>
-          <h3>Тем всегда четыре</h3>
-          <p>Светлая, тёмная и обе без прозрачности. Номер темы от 1 до 4 стоит в именах иконок и подставляется в стили, поэтому каждый значок и каждый цвет есть во всех четырёх вариантах.</p>
-        </li>
-        <li>
-          <h3>Рамку окна рисует система</h3>
-          <p>Приложение открывает окно без заголовка и оставляет сверху пустую полосу. Три кружка и стекло Liquid Glass дорисовывает плагин Hyprland, одинаково для всех окон.</p>
-        </li>
-        <li>
-          <h3>Не притворяться</h3>
-          <p>Pages, Numbers и Keynote сохраняют свои файлы в собственном формате и прямо говорят, что настоящие документы Apple не откроют. То, что не доделано, называется недоделанным.</p>
-        </li>
-      </ol>
-    </section>
+      <div class="pop glass cc" id="cc" hidden>
+        <div class="cc-tile">
+          <div class="cc-row"><span>Тёмное оформление<small>AppleInterfaceStyle</small></span><button type="button" class="sw" role="switch" id="sw-dark" aria-checked="false" aria-label="Тёмное оформление"></button></div>
+          <div class="cc-row"><span>Liquid Glass<small>HyprsurLiquidGlass</small></span><button type="button" class="sw" role="switch" id="sw-glass" aria-checked="true" aria-label="Liquid Glass"></button></div>
+          <div class="cc-row"><span>Без прозрачности<small>reduceTransparency</small></span><button type="button" class="sw" role="switch" id="sw-solid" aria-checked="false" aria-label="Без прозрачности"></button></div>
+        </div>
+        <div class="cc-tile">
+          <span>Цвет акцента</span>
+          <div class="dots" id="dots" role="group" aria-label="Цвет акцента"></div>
+        </div>
+        <div class="cc-tile"><div class="cc-log" id="cc-log" aria-live="polite"></div></div>
+      </div>
 
-    <section id="apps">
-      <h2>Приложения</h2>
-      <p>Двенадцать приложений из беты. Скриншоты сняты с запущенных программ из релиза, без монтажа. Кружков окна на них нет, потому что их рисует Hyprland (аксиома A6).</p>
-      <div class="apps">
-        <div class="app-list" id="app-list" role="tablist" aria-label="Приложения" aria-orientation="vertical"></div>
-        <div class="viewer">
-          <div class="stage">
-            <button class="shot" id="shot" type="button" aria-label="Увеличить скриншот">
-              <img id="shot-img" src="img/settings.webp" alt="Настройки HyprSur" width="920" height="640">
-            </button>
+      <div class="pop glass spot" id="spot" hidden>
+        <input id="spot-in" type="text" placeholder="Поиск Spotlight" autocomplete="off" aria-label="Поиск Spotlight">
+        <div class="spot-res" id="spot-res"></div>
+      </div>
+
+      <div class="pop glass lpad" id="lpad" hidden>
+        <div class="lpad-grid" id="lpad-grid"></div>
+      </div>
+
+      <div class="wins" id="wins"></div>
+      <div class="dock glass" id="dock" role="toolbar" aria-label="Dock"></div>
+    </div>
+    <p class="hint">Это не видео. Нажимай на значки в доке, таскай окна за заголовок, открой Пункт управления справа вверху. Калькулятор и Терминал работают по-настоящему. Поиск: <kbd>Ctrl</kbd> + <kbd>K</kbd>.</p>
+  </div>
+</section>
+
+<section class="band alt" id="axioms">
+  <div class="in">
+    <div class="head">
+      <p class="eyebrow">Аксиомы</p>
+      <h2>Семь правил, которые здесь не обсуждаются.</h2>
+      <p class="sub">Всё остальное в проекте из них следует. Под каждым правилом стоит кусок из беты, которым его можно проверить.</p>
+    </div>
+    <div class="rail-wrap">
+      <div class="rail" id="rail">
+        <article class="ax"><span class="n">A1</span><h3>Система живёт в одной папке.</h3><p>Всё лежит в <code>/Hyprsur</code> и разложено как на маке. Приложение это папка <code>.app</code>.</p>
+<div class="proof">/Hyprsur/System/Applications
+/Hyprsur/System/Library/CoreServices
+/Hyprsur/Library/Preferences</div></article>
+        <article class="ax"><span class="n">A2</span><h3>Настройка это plist.</h3><p>Своих форматов конфигов нет. Запись атомарная: временный файл, потом замена.</p>
+<div class="proof">with open(tmp, "wb") as f:
+    plistlib.dump(data, f)
+os.replace(tmp, path)</div></article>
+        <article class="ax"><span class="n">A3</span><h3>Ничего не перезапускается.</h3><p>Окна раз в секунду сверяют время изменения plist и стилей. Сменил акцент, и всё перекрасилось.</p>
+<div class="proof">GLib.timeout_add(1000, self._tick)
+key = (mtime, _prefs_mtime(), theme)</div></article>
+        <article class="ax"><span class="n">A4</span><h3>Вид лежит отдельно от кода.</h3><p>Код задаёт структуру и классы. Цвета, отступы и тени живут в <code>style.css</code> рядом с приложением.</p>
+<div class="proof">window.calculator {
+  background-color: @calc_bg_@THEME@;
+  border-radius: 12px;
+}</div></article>
+        <article class="ax"><span class="n">A5</span><h3>Тем всегда четыре.</h3><p>Светлая, тёмная и обе без прозрачности. Каждый цвет и значок есть во всех четырёх.</p>
+<div class="proof">dark  = style == "Dark"
+solid = reduceTransparency
+theme = (2 if dark else 1) + (2 if solid else 0)</div></article>
+        <article class="ax"><span class="n">A6</span><h3>Рамку окна рисует система.</h3><p>Приложение оставляет сверху пустую полосу. Три кружка и стекло дорисовывает плагин Hyprland.</p>
+<div class="proof">win.set_decorated(False)
+# кружки и тень рисует hyprSur
+padding: 28px 10px 10px 10px;</div></article>
+        <article class="ax"><span class="n">A7</span><h3>Не притворяться.</h3><p>Pages, Numbers и Keynote честно говорят, что настоящие файлы Apple не откроют. Недоделанное называется недоделанным.</p>
+<div class="proof">Файл .pages здесь — свой формат
+(plist), не настоящий Pages от Apple</div></article>
+      </div>
+      <div class="paddles">
+        <button class="paddle" id="rail-prev" type="button" aria-label="Предыдущая аксиома">‹</button>
+        <button class="paddle" id="rail-next" type="button" aria-label="Следующая аксиома">›</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="apps">
+  <div class="in">
+    <div class="head">
+      <p class="eyebrow">Приложения</p>
+      <h2>Двенадцать программ. Каждая запускается.</h2>
+      <p class="sub">Скриншоты сняты с программ из релиза, без монтажа. Заметки, события и напоминания на них вписаны для примера.</p>
+    </div>
+    <div class="chips" id="chips" role="tablist" aria-label="Приложения"></div>
+    <div class="show" id="show" role="tabpanel">
+      <div class="show-pic">
+        <button class="shot" id="shot" type="button" aria-label="Увеличить скриншот"><img id="shot-img" src="img/settings.webp" alt="" width="920" height="640"></button>
+      </div>
+      <div class="show-txt">
+        <div class="show-top"><img id="show-icon" src="img/icon/settings.webp" alt="" width="58" height="58"><div><h3 id="show-name"></h3><span id="show-lang"></span></div></div>
+        <p class="say" id="show-say"></p>
+        <ul id="show-list"></ul>
+        <dl class="facts" id="show-facts"></dl>
+        <div class="show-act">
+          <div class="seg2" role="group" aria-label="Тема на скриншоте">
+            <button type="button" id="shot-light" aria-pressed="true">Светлая</button>
+            <button type="button" id="shot-dark" aria-pressed="false">Тёмная</button>
           </div>
-          <div class="viewer-bar">
-            <div class="pair" role="group" aria-label="Тема на скриншоте">
-              <button type="button" id="shot-light" aria-pressed="true">Светлая</button>
-              <button type="button" id="shot-dark" aria-pressed="false">Тёмная</button>
-            </div>
-            <div class="pair" role="group" aria-label="Листать приложения">
-              <button type="button" id="prev" aria-label="Предыдущее приложение">&larr; Назад</button>
-              <button type="button" id="next" aria-label="Следующее приложение">Дальше &rarr;</button>
-            </div>
-          </div>
-          <div class="app-info" id="app-info" role="tabpanel">
-            <h3 id="app-name"></h3>
-            <p id="app-text"></p>
-            <dl class="facts" id="app-facts"></dl>
-          </div>
+          <button type="button" class="btn" id="show-open">Открыть на столе</button>
         </div>
       </div>
-    </section>
+    </div>
+    <div class="wall-grid" id="wall-grid"></div>
+  </div>
+</section>
 
-    <section id="system">
-      <h2>Система</h2>
-      <p>То, что работает вокруг окон. Эти части рисуются слоями поверх рабочего стола и запускаются только в самом Hyprland, поэтому скриншотов здесь нет.</p>
-      <div class="scroll">
-        <table>
-          <thead><tr><th>Что</th><th>На чём</th><th>Что делает</th></tr></thead>
-          <tbody>
-            <tr><td>Dock</td><td>Rust</td><td>Системные значки закреплены навсегда, остальные это открытые окна и то, что закрепил сам. Клик переводит фокус на окно, повторный клик листает окна одного приложения. Правой кнопкой можно закрепить или убрать.</td></tr>
-            <tr><td>Строка меню</td><td>Python</td><td>Конфиг в формате waybar: модули, часы, сеть, звук, свои кнопки. Понимает команды <code>reload</code> и <code>kill</code>, конфиг и стили перечитывает без перезапуска.</td></tr>
-            <tr><td>Пункт управления</td><td>Python</td><td>Свой движок вместо eww: читает тот же <code>eww.yuck</code> и принимает те же команды. Панели Wi-Fi, Bluetooth, AirDrop, звука, яркости, AirPlay и фокусирования.</td></tr>
-            <tr><td>Spotlight</td><td>Python</td><td>Строка поиска по установленным программам поверх экрана.</td></tr>
-            <tr><td>Launchpad</td><td>Python</td><td>Сетка всех приложений на весь экран.</td></tr>
-            <tr><td>WindowManager</td><td>Python</td><td>Выключатель Liquid Glass. Следит за ключом <code>HyprsurLiquidGlass</code>, правит <code>hyprsur.conf</code> и делает <code>hyprctl reload</code>.</td></tr>
-            <tr><td>SecurityAgent</td><td>Rust</td><td>Окно запроса пароля, работает и как <code>askpass</code> для sudo.</td></tr>
-            <tr><td>CoreGlyphs</td><td>133 файла</td><td>Общие значки. В имени файла записаны тема и состояние, например <code>Trash_1.0.2.svg</code>.</td></tr>
-            <tr><td>HyprsurKit</td><td>Python</td><td>Общий код простых приложений: чтение plist, темы, акцент, окно без рамки, автосохранение.</td></tr>
-          </tbody>
-        </table>
+<section class="band alt" id="system">
+  <div class="in">
+    <div class="head">
+      <p class="eyebrow">Система</p>
+      <h2>То, что вокруг окон.</h2>
+      <p class="sub">Док, строка меню и панели рисуются слоями поверх рабочего стола. Каждая часть это отдельная программа в <code>CoreServices</code>.</p>
+    </div>
+    <div class="bento">
+      <article class="tile w6">
+        <div class="split">
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <span class="k">Пункт управления</span>
+            <h3>Свой движок вместо eww. <span>Читает тот же файл и понимает те же команды.</span></h3>
+            <p>Панели описаны в <code>eww.yuck</code> на 1113 строк: Wi-Fi, Bluetooth, AirDrop, звук, яркость, AirPlay и фокусирование. Вместо бинарника eww их разбирает и рисует код на Python.</p>
+            <div class="flow" aria-label="Как файл превращается в окно">
+              <span>eww.yuck</span><i>→</i><span>лексер</span><i>→</i><span>парсер</span><i>→</i><span>выражения</span><i>→</i><span>виджеты GTK</span><i>→</i><span>слой</span>
+            </div>
+          </div>
+          <div class="code"><pre><span class="c">;; из беты, eww.yuck</span>
+(<span class="b">defwindow</span> control_center
+  <span class="y">:namespace</span> <span class="s">"ewwblur"</span>
+  <span class="y">:geometry</span> (geometry <span class="y">:x</span> 9 <span class="y">:y</span> 9
+                      <span class="y">:width</span> 380 <span class="y">:height</span> 410
+                      <span class="y">:anchor</span> <span class="s">"top right"</span>)
+  (box <span class="y">:class</span> <span class="s">"glass-panel"</span> <span class="y">:orientation</span> <span class="s">"v"</span>
+    (eventbox
+      <span class="y">:class</span> <span class="s">"icon-button ${wifi_on ? 'on' : 'off'}"</span>
+      <span class="y">:onclick</span> <span class="s">"${EWW_CMD} update wifi_on=${!wifi_on}"</span>
+      (image <span class="y">:path</span> {wifi_on ? <span class="s">"./icons/wifi_on.svg"</span>
+                           : <span class="s">"./icons/wifi_off.svg"</span>}))))</pre></div>
+        </div>
+      </article>
+
+      <article class="tile">
+        <span class="k">Dock</span>
+        <h3>Клик переводит на окно. <span>Ещё клик листает окна одного приложения.</span></h3>
+        <p>Системные значки закреплены навсегда. Остальные это открытые сейчас окна и то, что ты закрепил правой кнопкой. Написан на Rust, стили лежат отдельно в <code>styles.css</code>.</p>
+        <div class="bottom"><a class="more" href="#top" data-desk="dock">Попробовать док наверху</a></div>
+      </article>
+
+      <article class="tile">
+        <span class="k">Строка меню</span>
+        <h3>Конфиг от waybar подходит как есть. <span>Правки подхватываются на лету.</span></h3>
+        <div class="code"><pre>{
+  <span class="b">"position"</span>: <span class="s">"top"</span>, <span class="b">"height"</span>: 35,
+  <span class="b">"modules-right"</span>: [<span class="s">"network"</span>, <span class="s">"pulseaudio"</span>,
+    <span class="s">"custom/search"</span>, <span class="s">"custom/control_center"</span>,
+    <span class="s">"custom/date"</span>, <span class="s">"clock"</span>],
+  <span class="b">"clock"</span>: { <span class="b">"format"</span>: <span class="s">"{:%H:%M}"</span> }
+}</pre></div>
+        <p>Команды <code>MenuBar reload</code> и <code>MenuBar kill</code> управляют уже запущенной строкой.</p>
+      </article>
+
+      <article class="tile w4">
+        <span class="k">Четыре темы</span>
+        <h3>Номер темы стоит прямо в имени файла.</h3>
+        <p>Выбери тему и состояние. Так называются значки в <code>CoreGlyphs.bundle</code>, их там 133.</p>
+        <div class="themes4" id="themes4" role="group" aria-label="Тема значка"></div>
+        <div class="seg2" role="group" aria-label="Состояние значка" style="align-self:flex-start">
+          <button type="button" id="g-on" aria-pressed="true">Включено</button>
+          <button type="button" id="g-off" aria-pressed="false">Выключено</button>
+        </div>
+        <p class="fname" id="fname" aria-live="polite"></p>
+      </article>
+
+      <article class="tile w2">
+        <span class="k">Liquid Glass</span>
+        <h3>Стекло выключается одним ключом.</h3>
+        <p>WindowManager следит за <code>HyprsurLiquidGlass</code>, правит <code>hyprsur.conf</code> и делает <code>hyprctl reload</code>.</p>
+        <div class="code"><pre>WindowManager toggle
+WindowManager on
+WindowManager off</pre></div>
+      </article>
+
+      <article class="tile w2">
+        <span class="k">Spotlight</span>
+        <h3>Поиск по программам поверх экрана.</h3>
+        <p>Ищет среди установленных программ по их <code>.desktop</code> файлам.</p>
+        <div class="bottom"><a class="more" href="#top" data-desk="spotlight">Открыть наверху</a></div>
+      </article>
+      <article class="tile w2">
+        <span class="k">Launchpad</span>
+        <h3>Все программы сеткой на весь экран.</h3>
+        <p>Открывается поверх рабочего стола, как на маке.</p>
+        <div class="bottom"><a class="more" href="#top" data-desk="launchpad">Открыть наверху</a></div>
+      </article>
+      <article class="tile w2">
+        <span class="k">SecurityAgent</span>
+        <h3>Окно пароля в стиле системы.</h3>
+        <p>Рядом лежит ссылка <code>askpass</code>, так что его можно отдать sudo.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="anatomy">
+  <div class="in">
+    <div class="head">
+      <p class="eyebrow">Устройство</p>
+      <h2>Открой папку и посмотри, что внутри.</h2>
+      <p class="sub">Это настоящее дерево беты. Нажимай на папки и файлы.</p>
+    </div>
+    <div class="tree-box">
+      <div class="tree" id="tree" role="tree" aria-label="Файлы HyprSur"></div>
+      <div class="leaf" aria-live="polite">
+        <span class="path" id="leaf-path"></span>
+        <h3 id="leaf-name"></h3>
+        <p id="leaf-text"></p>
+        <div class="code" id="leaf-code" hidden><pre></pre></div>
       </div>
-    </section>
+    </div>
+  </div>
+</section>
 
-    <section id="todo">
-      <h2>Что ещё не готово</h2>
-      <p>Бета есть бета. Вот что я знаю и чиню.</p>
-      <ul class="todo">
-        <li><b>Обои.</b> Свой демон <code>surw</code> (картинки, видео, переходы, динамические обои по солнцу) написан, но ещё не влит: <a href="https://github.com/miramwhr/HyprSur/pull/2">pull request 2</a>.</li>
-        <li><b>Обновление из Настроек.</b> Проверка смотрит GitHub Releases и ждёт архив <code>.tar.gz</code> с <code>install.sh</code> внутри. Сейчас в релизе лежит <code>.zip</code>, поэтому обновляться пока нужно руками.</li>
-        <li><b>HyprsurKit лежит не там.</b> В архиве <code>appkit.py</code> находится уровнем выше, чем его ищут приложения. Это исправляет шаг 3 установки.</li>
-        <li><b>Центр уведомлений и окно входа.</b> Папки есть, но внутри пока копия старого дока на Python.</li>
-        <li><b>Значки в боковом меню Настроек.</b> У части пунктов их ещё нет.</li>
-        <li><b>Только Arch.</b> App Store ставит программы через pacman, AUR и Flatpak, на других дистрибутивах он бесполезен.</li>
-      </ul>
-    </section>
+<section class="band night" id="wallpaper">
+  <div class="in">
+    <div class="head">
+      <p class="eyebrow">Обои · в работе</p>
+      <h2>surw. Обои, которые идут за солнцем.</h2>
+      <p class="sub">Свой демон обоев для Wayland. Написан на Rust, код готов и ждёт слияния.</p>
+      <a class="more" href="https://github.com/miramwhr/HyprSur/pull/2" style="color:color-mix(in srgb, var(--accent) 80%, #fff)">Смотреть pull request</a>
+    </div>
+    <div class="bento">
+      <article class="tile">
+        <h3>Шесть переходов. <span>От 300 миллисекунд до суток.</span></h3>
+        <img src="img/surw-transitions.webp" alt="Переходы surw: wipe, grow, dissolve и slide" width="1280" height="720" loading="lazy" style="border-radius:14px">
+        <p>fade, wipe, slide, grow, outer и dissolve, плюс случайный выбор. Суточный переход почти не грузит процессор и переживает перезапуск демона.</p>
+      </article>
+      <article class="tile">
+        <h3>Видео растягивается во времени. <span>Десять секунд на целый день.</span></h3>
+        <img src="img/surw-speed.webp" alt="Видео в surw: обычная скорость, ускорение и замедление со смешиванием кадров" width="1280" height="720" loading="lazy" style="border-radius:14px">
+        <p>При сильном замедлении соседние кадры перетекают друг в друга, картинка не дёргается.</p>
+      </article>
+      <article class="tile w6">
+        <div class="split">
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <h3>Динамические обои как на macOS. <span>По часам или по высоте солнца.</span></h3>
+            <p>Картинки привязываются к времени суток, восходу и закату. Набор с мака можно забрать командой <code>surw import-heic</code>.</p>
+          </div>
+          <div class="code copyable"><pre>surw daemon
+surw img ~/walls/forest.jpg -t fade --td 2s
+surw video ~/walls/day.mp4 --duration 24h --sync-clock
+surw dynamic examples/day.toml
+surw import-heic Mojave.heic</pre></div>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
 
-    <section id="install">
-      <h2>Установить</h2>
-      <p class="note"><b>Нестабильно.</b> Это сборка для разработчиков. Ставь на машину, которую не жалко, и не на основной рабочий компьютер.</p>
-      <p>Нужен Arch Linux (или производный) с Hyprland. Команды копируются кнопкой.</p>
-      <ol class="steps">
-        <li>
-          <h3>Зависимости</h3>
-          <div class="cmd"><pre>sudo pacman -S --needed hyprland python python-gobject gtk4 gtk4-layer-shell vte4 unzip</pre></div>
-        </li>
-        <li>
-          <h3>Скачать и распаковать в /Hyprsur</h3>
-          <p class="muted">Путь менять нельзя: он прописан в приложениях (аксиома A1).</p>
-          <div class="cmd"><pre>curl -LO https://github.com/miramwhr/HyprSur/releases/download/BETA/Beta.Settings.15V03B00NR.zip
+<section class="band" id="more">
+  <div class="in">
+    <div class="head">
+      <h2>И ещё много мелочей.</h2>
+    </div>
+    <div class="mini">
+      <div><h3>Формулы по-русски.</h3><p>В Numbers работают СУММ, СРЗНАЧ, МИН, МАКС, СЧЁТ и ОКРУГЛ, наравне с SUM и AVERAGE.</p></div>
+      <div><h3>Девять цветов акцента.</h3><p>Те же, что в macOS, включая «Разноцветный» и «Графитовый». Номера совпадают с AppleAccentColor.</p></div>
+      <div><h3>Точный калькулятор.</h3><p>Считает на Decimal с точностью 30 знаков, поэтому 0,1 + 0,2 это ровно 0,3.</p></div>
+      <div><h3>Первая строка это заголовок.</h3><p>Заметки сами берут название из первой строки и раскладывают список по дням.</p></div>
+      <div><h3>Показ на весь экран.</h3><p>Keynote запускает слайды по Ctrl+Alt+P, листать стрелками, пробелом и кликом.</p></div>
+      <div><h3>Терминал с вкладками.</h3><p>Ctrl+Shift+T открывает вкладку, Ctrl+Shift+K очищает экран, как ⌘K на маке.</p></div>
+      <div><h3>Три источника программ.</h3><p>App Store ставит из pacman, AUR и Flatpak. По одной задаче за раз, с прогрессом.</p></div>
+      <div><h3>Данные отдельно от системы.</h3><p>Заметки, напоминания и календарь лежат в домашней папке. Удаление системы их не трогает.</p></div>
+      <div><h3>Умные списки.</h3><p>В Напоминаниях есть «Сегодня», «Запланировано», «С флажком» и «Завершено», считаются сами.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band alt" id="versions">
+  <div class="in">
+    <div class="head">
+      <p class="eyebrow">Версии</p>
+      <h2>Вся версия в одной строке.</h2>
+      <p class="sub">Нажми на любую часть номера, чтобы прочитать её.</p>
+    </div>
+    <div class="ver-big">
+      <div class="ver-row" data-ver></div>
+      <p class="ver-out sub" style="margin-top:22px" aria-live="polite"></p>
+    </div>
+    <div class="line-list">
+      <div><span class="when">23.10.2026</span><h3>Бета 0.3, сборка 15V03B00NR</h3><p>Первый публичный архив: 12 приложений, док, строка меню, Пункт управления, Настройки с проверкой обновлений.</p></div>
+      <div><span class="when">03.11.2026</span><h3>surw отправлен на проверку</h3><p>Демон обоев с переходами, видео и динамическими обоями. Ждёт слияния в основную ветку.</p></div>
+      <div><span class="when">10.11.2026</span><h3>Этот сайт</h3><p>Все программы из архива запущены заново и сняты для этой страницы.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="dev">
+  <div class="in">
+    <div class="head">
+      <p class="eyebrow">Разработчикам</p>
+      <h2>Своё приложение за двадцать строк.</h2>
+      <p class="sub">HyprsurKit даёт окно без рамки, все четыре темы, акцент и автосохранение. Остальное обычный GTK 4.</p>
+    </div>
+    <div class="bento">
+      <article class="tile w4">
+        <div class="code copyable"><pre><span class="c">#!/usr/bin/env python3</span>
+<span class="c"># Hello.app/Contents/MacOS/Hello</span>
+<span class="b">import</span> sys
+<span class="b">from</span> pathlib <span class="b">import</span> Path
+sys.path.insert(0, <span class="s">"/Hyprsur/System/Library/PrivateFrameworks/HyprsurKit"</span>)
+
+<span class="b">import</span> gi
+gi.require_version(<span class="s">"Gtk"</span>, <span class="s">"4.0"</span>)
+<span class="b">from</span> gi.repository <span class="b">import</span> Gtk
+<span class="b">from</span> appkit <span class="b">import</span> ThemedCSS, make_window
+
+RES = Path(__file__).resolve().parent.parent / <span class="s">"Resources"</span>
+
+<span class="b">class</span> Hello(Gtk.Application):
+    <span class="b">def</span> do_activate(self):
+        ThemedCSS(RES / <span class="s">"style.css"</span>, RES)   <span class="c"># темы и акцент, сам перечитывает</span>
+        win = make_window(self, <span class="s">"Привет"</span>, 320, 200, <span class="s">"hello"</span>)
+        win.set_child(Gtk.Label(label=<span class="s">"Привет, HyprSur"</span>))
+        win.present()
+
+Hello(application_id=<span class="s">"com.example.hello"</span>).run(sys.argv)</pre></div>
+      </article>
+      <article class="tile w2">
+        <span class="k">Что есть в наборе</span>
+        <h3>Десяток функций вместо шаблонного кода.</h3>
+        <p><code>read_plist</code> <code>write_plist</code> <code>user_data</code> <code>current_theme</code> <code>accent_hex</code> <code>ThemedCSS</code> <code>make_window</code> <code>tool_button</code> <code>Debounce</code> <code>open_file</code> <code>save_file</code> <code>alert</code></p>
+      </article>
+      <article class="tile">
+        <span class="k">Стили</span>
+        <h3>Один файл на все темы. <span>Номер подставится сам.</span></h3>
+        <div class="code"><pre>@define-color bg_1 rgba(246, 246, 246, 0.80);
+@define-color bg_2 rgba(40, 40, 42, 0.78);
+@define-color bg_3 rgb(246, 246, 246);
+@define-color bg_4 rgb(40, 40, 42);
+
+window.hello {
+  background-color: @bg_@THEME@;
+  color: @ACCENT@;
+}</pre></div>
+      </article>
+      <article class="tile">
+        <span class="k">Паспорт приложения</span>
+        <h3>Info.plist как на маке. <span>Плюс класс окна для дока.</span></h3>
+        <div class="code"><pre>&lt;key&gt;CFBundleIdentifier&lt;/key&gt;
+&lt;string&gt;com.hyprsur.calculator&lt;/string&gt;
+&lt;key&gt;CFBundleName&lt;/key&gt;
+&lt;string&gt;Калькулятор&lt;/string&gt;
+&lt;key&gt;CFBundleExecutable&lt;/key&gt;
+&lt;string&gt;Calculator&lt;/string&gt;
+&lt;key&gt;HyprsurWindowClass&lt;/key&gt;
+&lt;string&gt;com.hyprsur.calculator&lt;/string&gt;</pre></div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="band alt" id="plan">
+  <div class="in">
+    <div class="head">
+      <p class="eyebrow">Планы</p>
+      <h2>Что ещё не готово.</h2>
+      <p class="sub">Бета есть бета. Вот список того, что известно и чинится.</p>
+    </div>
+    <div class="plan">
+      <div><span class="st wip">Написано, ждёт слияния</span><h3>Обои surw</h3><p>Демон готов и лежит в pull request. В архиве беты его ещё нет.</p></div>
+      <div><span class="st">Не работает</span><h3>Обновление из Настроек</h3><p>Код ждёт в релизе <code>.tar.gz</code> с <code>install.sh</code>, а там сейчас <code>.zip</code>. Обновляться пока руками.</p></div>
+      <div><span class="st">Чинится при установке</span><h3>HyprsurKit лежит не там</h3><p>В архиве <code>appkit.py</code> находится уровнем выше, чем его ищут приложения. Шаг 3 установки это исправляет.</p></div>
+      <div><span class="st">Заглушка</span><h3>Центр уведомлений и окно входа</h3><p>Папки приложений есть, но внутри пока копия старого дока на Python.</p></div>
+      <div><span class="st">Не доделано</span><h3>Значки в Настройках</h3><p>У части пунктов бокового меню значков ещё нет.</p></div>
+      <div><span class="st">Ограничение</span><h3>Только Arch</h3><p>App Store умеет pacman, AUR и Flatpak. На других дистрибутивах он бесполезен.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="install">
+  <div class="in">
+    <div class="head">
+      <p class="eyebrow">Установка</p>
+      <h2>Шесть шагов до рабочего стола.</h2>
+      <div class="compat">
+        <span><b>Arch Linux</b> или производный</span>
+        <span><b>Hyprland</b> на Wayland</span>
+        <span><b>Python</b> и GTK 4</span>
+        <span>172 МБ архив</span>
+      </div>
+    </div>
+    <p class="warn"><b>Нестабильно.</b> Это сборка для разработчиков. Ставь на машину, которую не жалко.</p>
+    <ol class="steps" id="steps">
+      <li><h3>Зависимости</h3>
+        <div class="code copyable"><pre>sudo pacman -S --needed hyprland python python-gobject gtk4 gtk4-layer-shell vte4 unzip</pre></div></li>
+      <li><h3>Скачать и распаковать</h3>
+        <p>Путь <code>/Hyprsur</code> менять нельзя, он прописан в приложениях.</p>
+        <div class="code copyable"><pre>curl -LO https://github.com/miramwhr/HyprSur/releases/download/BETA/Beta.Settings.15V03B00NR.zip
 sudo mkdir -p /Hyprsur
 sudo unzip -q Beta.Settings.15V03B00NR.zip -d /Hyprsur
-sudo chown -R "$USER": /Hyprsur</pre></div>
-        </li>
-        <li>
-          <h3>Положить HyprsurKit на место</h3>
-          <p class="muted">Без этого Калькулятор, Заметки, Календарь и остальные простые приложения не стартуют.</p>
-          <div class="cmd"><pre>cd /Hyprsur/System/Library/PrivateFrameworks
-cp appkit.py base.css HyprsurKit/</pre></div>
-        </li>
-        <li>
-          <h3>Указать репозиторий для обновлений</h3>
-          <p class="muted">В Настройках вместо владельца стоит заглушка <code>CHANGE_ME</code>. Репозиторий проекта: <code>miramwhr/HyprSur</code>.</p>
-          <div class="cmd"><pre>S=/Hyprsur/System/Applications/Settings.app/Contents/MacOS/Settings
-sed -i 's/^GITHUB_OWNER = .*/GITHUB_OWNER = "miramwhr"/; s/^GITHUB_REPO = .*/GITHUB_REPO = "HyprSur"/' "$S"</pre></div>
-        </li>
-        <li>
-          <h3>Проверить</h3>
-          <p class="muted">Должно открыться окно Настроек на странице «Оформление».</p>
-          <div class="cmd"><pre>python3 /Hyprsur/System/Applications/Settings.app/Contents/MacOS/Settings</pre></div>
-        </li>
-        <li>
-          <h3>Автозапуск в Hyprland</h3>
-          <p class="muted">Добавь в <code>~/.config/hypr/hyprland.conf</code> и перезайди в сессию.</p>
-          <div class="cmd"><pre><span class="c"># HyprSur</span>
-exec-once = /Hyprsur/System/Library/CoreServices/MenuBar.app/Contents/MacOS/MenuBar
-exec-once = /Hyprsur/System/Library/CoreServices/Dock.app/Contents/MacOS/Dock</pre></div>
-        </li>
-      </ol>
-      <p class="muted">Удалить: убрать две строки из <code>hyprland.conf</code> и стереть папку <code>/Hyprsur</code>. Свои заметки, напоминания и календарь лежат отдельно, в <code>~/Library/Application Support</code>.</p>
-    </section>
+sudo chown -R "$USER": /Hyprsur</pre></div></li>
+      <li><h3>Положить HyprsurKit на место</h3>
+        <p>Без этого Калькулятор, Заметки, Календарь и другие простые приложения не стартуют.</p>
+        <div class="code copyable"><pre>cd /Hyprsur/System/Library/PrivateFrameworks
+cp appkit.py base.css HyprsurKit/</pre></div></li>
+      <li><h3>Указать репозиторий обновлений</h3>
+        <p>В Настройках вместо владельца стоит заглушка <code>CHANGE_ME</code>. Репозиторий проекта: <code>miramwhr/HyprSur</code>.</p>
+        <div class="code copyable"><pre>S=/Hyprsur/System/Applications/Settings.app/Contents/MacOS/Settings
+sed -i 's/^GITHUB_OWNER = .*/GITHUB_OWNER = "miramwhr"/; s/^GITHUB_REPO = .*/GITHUB_REPO = "HyprSur"/' "$S"</pre></div></li>
+      <li><h3>Проверить</h3>
+        <p>Должно открыться окно Настроек на странице «Оформление».</p>
+        <div class="code copyable"><pre>python3 /Hyprsur/System/Applications/Settings.app/Contents/MacOS/Settings</pre></div></li>
+      <li><h3>Автозапуск в Hyprland</h3>
+        <p>Добавь в <code>~/.config/hypr/hyprland.conf</code> и перезайди в сессию.</p>
+        <div class="code copyable"><pre>exec-once = /Hyprsur/System/Library/CoreServices/MenuBar.app/Contents/MacOS/MenuBar
+exec-once = /Hyprsur/System/Library/CoreServices/Dock.app/Contents/MacOS/Dock</pre></div></li>
+    </ol>
+    <div class="all"><button class="btn line" id="copy-all" type="button">Скопировать шаги 1–4 одной командой</button></div>
+  </div>
+</section>
 
-    <footer>
-      <span>HyprSur, бета 15V03B00NR</span>
-      <a href="https://github.com/miramwhr/HyprSur">Исходники</a>
-      <a href="https://github.com/miramwhr/HyprSur/releases">Релизы</a>
-      <a href="https://github.com/miramwhr/HyprSur/issues">Сообщить об ошибке</a>
-      <a href="#top">Наверх</a>
-    </footer>
+<section class="band alt" id="faq">
+  <div class="in">
+    <div class="head"><h2>Вопросы.</h2></div>
+    <div class="faq">
+      <details><summary>Заработает на Ubuntu или Fedora?</summary><div class="a"><p>Простые приложения да: им нужны только Python, PyGObject и GTK 4. Док, строка меню и панели требуют <code>gtk4-layer-shell</code> и Hyprland. App Store рассчитан только на pacman.</p></div></details>
+      <details><summary>Можно поставить не в /Hyprsur?</summary><div class="a"><p>Пока нет. Простые приложения читают переменную <code>HYPRSUR_ROOT</code>, но в Настройках, строке меню и Пункте управления путь вписан прямо.</p></div></details>
+      <details><summary>Как включить тёмную тему без Настроек?</summary><div class="a"><p>Записать ключ в общий plist. Открытые окна перекрасятся сами в течение секунды.</p>
+        <div class="code copyable"><pre>python3 -c "import plistlib; p='/Hyprsur/Library/Preferences/.GlobalPreferences.plist'; d=plistlib.load(open(p,'rb')); d['AppleInterfaceStyle']='Dark'; plistlib.dump(d,open(p,'wb'))"</pre></div></div></details>
+      <details><summary>Где лежат мои заметки и события?</summary><div class="a"><p>В <code>~/Library/Application Support</code>, по папке на приложение: <code>Notes/Notes.plist</code>, <code>Reminders/Reminders.plist</code>, <code>Calendar/Calendar.plist</code>. Это обычные plist, их можно копировать между машинами.</p></div></details>
+      <details><summary>Это копия macOS?</summary><div class="a"><p>Нет. Внутри Linux, Hyprland и GTK 4, а код написан с нуля на Python и Rust. Повторяется только вид и раскладка папок. Файлы Pages, Numbers и Keynote от Apple здесь не открываются.</p></div></details>
+      <details><summary>Как удалить?</summary><div class="a"><p>Убрать две строки <code>exec-once</code> из <code>hyprland.conf</code> и стереть папку <code>/Hyprsur</code>. Больше система никуда ничего не ставит.</p></div></details>
+    </div>
+  </div>
+</section>
 
-  </main>
-</div>
+</main>
+
+<footer class="foot">
+  <div class="in">
+    <div class="foot-cols">
+      <div><b>HyprSur</b><a href="#top">Рабочий стол</a><a href="#axioms">Аксиомы</a><a href="#apps">Приложения</a><a href="#system">Система</a></div>
+      <div><b>Внутри</b><a href="#anatomy">Устройство</a><a href="#wallpaper">Обои surw</a><a href="#versions">Версии</a><a href="#dev">Разработчикам</a></div>
+      <div><b>Поставить</b><a href="#install">Установка</a><a href="#plan">Что не готово</a><a href="#faq">Вопросы</a><a href="https://github.com/miramwhr/HyprSur/releases/download/BETA/Beta.Settings.15V03B00NR.zip">Скачать архив</a></div>
+      <div><b>GitHub</b><a href="https://github.com/miramwhr/HyprSur">Исходники</a><a href="https://github.com/miramwhr/HyprSur/releases">Релизы</a><a href="https://github.com/miramwhr/HyprSur/issues">Сообщить об ошибке</a><a href="https://github.com/miramwhr/HyprSur/pull/2">surw</a></div>
+    </div>
+    <p class="legal">HyprSur, бета 15V03B00NR. Независимый проект, не связан с Apple. macOS, Finder, Pages, Numbers и Keynote это товарные знаки Apple Inc.</p>
+  </div>
+</footer>
 
 <dialog id="zoom" aria-label="Скриншот крупно">
   <img id="zoom-img" src="" alt="">
-  <form method="dialog">
-    <span id="zoom-cap"></span>
-    <button type="submit">Закрыть</button>
-  </form>
+  <form method="dialog"><span id="zoom-cap"></span><button type="submit">Закрыть</button></form>
 </dialog>
 
-<script>
-(function () {
-  var $ = function (id) { return document.getElementById(id); };
-
-  /* ---------- тема сайта ---------- */
-  var root = document.documentElement, themeBtn = $("theme");
-  function isDark() {
-    var t = root.getAttribute("data-theme");
-    if (t) return t === "dark";
-    return window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches;
-  }
-  function paintTheme() { themeBtn.textContent = isDark() ? "Светлая тема" : "Тёмная тема"; }
-  try { var saved = localStorage.getItem("hs-theme"); if (saved) root.setAttribute("data-theme", saved); } catch (e) {}
-  paintTheme();
-  themeBtn.addEventListener("click", function () {
-    var next = isDark() ? "light" : "dark";
-    root.setAttribute("data-theme", next);
-    try { localStorage.setItem("hs-theme", next); } catch (e) {}
-    paintTheme();
-  });
-
-  /* ---------- версия ---------- */
-  var VER = [
-    ["15", "Тип сборки. 15 это HS, то есть сам HyprSur. Обновления ищутся только среди релизов своего типа."],
-    ["V",  "Просто метка: дальше идёт версия."],
-    ["03", "Публичная версия, 0.3. Внутренняя сейчас 2.79 и может скакать, публичная растёт по порядку."],
-    ["B",  "Канал. B значит бета, V значит обычный выпуск. При одинаковом номере выпуск новее беты."],
-    ["00", "Патч в тысячных. 96 дало бы 0.396. Нужен для срочных исправлений."],
-    ["NR", "Not Released. Пометка для людей, при сравнении версий не учитывается."]
-  ];
-  var verRow = $("ver-row"), verOut = $("ver-out"), segs = [];
-  function pickSeg(i) {
-    segs.forEach(function (b, n) { b.setAttribute("aria-pressed", n === i ? "true" : "false"); });
-    verOut.innerHTML = "";
-    var b = document.createElement("b"); b.textContent = VER[i][0];
-    verOut.appendChild(b); verOut.appendChild(document.createTextNode("  " + VER[i][1]));
-  }
-  VER.forEach(function (v, i) {
-    var b = document.createElement("button");
-    b.type = "button"; b.className = "seg"; b.textContent = v[0];
-    b.addEventListener("click", function () { pickSeg(i); });
-    verRow.appendChild(b); segs.push(b);
-  });
-  pickSeg(2);
-
-  /* ---------- приложения ---------- */
-  var APPS = [
-    { id: "settings", name: "Настройки", lang: "Python", dark: true,
-      text: "Страницы «Оформление», «Универсальный доступ», «Дисплей», «Пункт управления», «Рабочий стол и Dock», «Обои», «Обновление ПО» и «Экспериментальные функции». Девять цветов акцента, как в macOS. Всё, что переключаешь, сразу пишется в plist.",
-      path: "System/Applications/Settings.app", data: "/Hyprsur/Library/Preferences/" },
-    { id: "finder", name: "Finder", lang: "Rust",
-      text: "Боковое меню с избранным, местами и цветными тегами. Четыре вида: значки, список, колонки и галерея. Внизу строка пути и счётчик объектов со свободным местом.",
-      path: "System/Library/CoreServices/Finder.app" },
-    { id: "appstore", name: "App Store", lang: "Rust + Python",
-      text: "Ставит, удаляет и обновляет программы через pacman, AUR (yay или paru) и Flatpak. При первом запуске просит завести hyprSur ID: имя и пароль хранятся только на этом компьютере.",
-      path: "System/Applications/App_Store.app" },
-    { id: "calendar", name: "Календарь", lang: "Python", dark: true,
-      text: "Виды «День», «Неделя», «Месяц» и «Год». Несколько календарей со своими цветами, их можно скрывать галочкой. События на весь день и по часам.",
-      path: "System/Applications/Calendar.app", data: "~/Library/Application Support/Calendar/Calendar.plist" },
-    { id: "notes", name: "Заметки", lang: "Python", dark: true,
-      text: "Папки, закреплённые заметки, поиск и «Недавно удалённые». Список сам делится на «Сегодня», «Вчера», «Предыдущие 7 дней». Первая строка становится заголовком.",
-      path: "System/Applications/Notes.app", data: "~/Library/Application Support/Notes/Notes.plist" },
-    { id: "reminders", name: "Напоминания", lang: "Python", dark: true,
-      text: "Умные списки «Сегодня», «Запланировано», «Все», «С флажком» и «Завершено». Свои списки с цветами, сроки, флажки и заметки к пунктам.",
-      path: "System/Applications/Reminders.app", data: "~/Library/Application Support/Reminders/Reminders.plist" },
-    { id: "pages", name: "Pages", lang: "Python",
-      text: "Лист A4 на сером фоне и инспектор «Формат» справа: стиль абзаца, жирный, курсив, подчёркнутый, зачёркнутый, размер, цвет, выравнивание. Открывает .pages своего формата и обычный .txt.",
-      path: "System/Applications/Pages.app" },
-    { id: "numbers", name: "Numbers", lang: "Python",
-      text: "Листы вкладками и формулы: =A1+B2*2, =SUM(A1:A10), AVERAGE, MIN, MAX, COUNT, ROUND, ABS. Русские имена тоже работают: СУММ, СРЗНАЧ, МИН, МАКС, СЧЁТ, ОКРУГЛ. Открывает и сохраняет .csv.",
-      path: "System/Applications/Numbers.app" },
-    { id: "keynote", name: "Keynote", lang: "Python",
-      text: "Навигатор слайдов слева, слайд 16:9 в центре, справа макет и тема: белая, чёрная или градиент. Показ на весь экран по кнопке или Ctrl+Alt+P, листать стрелками и пробелом.",
-      path: "System/Applications/Keynote.app" },
-    { id: "terminal", name: "Терминал", lang: "Python + VTE",
-      text: "Профиль «Базовый»: чёрное на белом в светлой теме и белое на чёрном в тёмной. Вкладки и окна на Ctrl+Shift+T и Ctrl+Shift+N, очистка на Ctrl+Shift+K, размер шрифта на Ctrl и плюс или минус.",
-      path: "System/Applications/Terminal.app" },
-    { id: "calculator", name: "Калькулятор", lang: "Python",
-      text: "Базовый режим. На экране девять цифр, как на маке, считает на Decimal без ошибок округления. Понимает клавиатуру: цифры, знаки, Enter, Backspace и Esc.",
-      path: "System/Applications/Calculator.app" },
-    { id: "iconcomposer", name: "Icon Composer", lang: "Rust",
-      text: "Редактор значков приложений: слои и группы слева, холст со скруглённым квадратом в центре, заливка справа. Внизу переключаются варианты значка.",
-      path: "System/Applications/Icon_Composer.app" }
-  ];
-  var SIZE = { settings: [920, 640], finder: [1018, 638], appstore: [1180, 760], calendar: [1100, 720], notes: [1000, 640],
-    reminders: [900, 600], pages: [1180, 820], numbers: [1180, 780], keynote: [1200, 760], terminal: [720, 460],
-    calculator: [232, 363], iconcomposer: [1440, 900] };
-
-  var list = $("app-list"), img = $("shot-img"), bLight = $("shot-light"), bDark = $("shot-dark");
-  var cur = 0, dark = false, tabs = [];
-
-  function src(a) { return "img/" + a.id + (dark && a.dark ? "-dark" : "") + ".webp"; }
-  function fact(dl, k, v) {
-    var dt = document.createElement("dt"), dd = document.createElement("dd");
-    dt.textContent = k; dd.textContent = v; dl.appendChild(dt); dl.appendChild(dd);
-  }
-  function show(i, focus) {
-    cur = (i + APPS.length) % APPS.length;
-    var a = APPS[cur];
-    tabs.forEach(function (t, n) {
-      t.setAttribute("aria-selected", n === cur ? "true" : "false");
-      t.tabIndex = n === cur ? 0 : -1;
-    });
-    if (focus) tabs[cur].focus();
-    img.src = src(a);
-    img.alt = a.name + " в HyprSur, " + (dark && a.dark ? "тёмная" : "светлая") + " тема";
-    img.width = SIZE[a.id][0]; img.height = SIZE[a.id][1];
-    bDark.disabled = !a.dark;
-    bDark.title = a.dark ? "" : "Для этого приложения снята только светлая тема";
-    bLight.setAttribute("aria-pressed", dark && a.dark ? "false" : "true");
-    bDark.setAttribute("aria-pressed", dark && a.dark ? "true" : "false");
-    $("app-name").textContent = a.name;
-    $("app-text").textContent = a.text;
-    var dl = $("app-facts"); dl.innerHTML = "";
-    fact(dl, "Написано на", a.lang);
-    fact(dl, "Лежит в", "/Hyprsur/" + a.path);
-    if (a.data) fact(dl, "Данные", a.data);
-  }
-  APPS.forEach(function (a, i) {
-    var b = document.createElement("button");
-    b.type = "button"; b.setAttribute("role", "tab");
-    b.appendChild(document.createTextNode(a.name));
-    var s = document.createElement("span"); s.textContent = a.lang.split(" ")[0]; b.appendChild(s);
-    b.addEventListener("click", function () { show(i); });
-    list.appendChild(b); tabs.push(b);
-  });
-  list.addEventListener("keydown", function (e) {
-    if (e.key === "ArrowDown" || e.key === "ArrowRight") { e.preventDefault(); show(cur + 1, true); }
-    if (e.key === "ArrowUp" || e.key === "ArrowLeft") { e.preventDefault(); show(cur - 1, true); }
-  });
-  $("prev").addEventListener("click", function () { show(cur - 1); });
-  $("next").addEventListener("click", function () { show(cur + 1); });
-  bLight.addEventListener("click", function () { dark = false; show(cur); });
-  bDark.addEventListener("click", function () { dark = true; show(cur); });
-  show(0);
-
-  /* ---------- увеличение ---------- */
-  var zoom = $("zoom");
-  $("shot").addEventListener("click", function () {
-    $("zoom-img").src = img.src; $("zoom-img").alt = img.alt;
-    $("zoom-cap").textContent = APPS[cur].name;
-    if (zoom.showModal) zoom.showModal(); else zoom.setAttribute("open", "");
-  });
-  zoom.addEventListener("click", function (e) { if (e.target === zoom) zoom.close(); });
-
-  /* ---------- копирование команд ---------- */
-  Array.prototype.forEach.call(document.querySelectorAll(".cmd"), function (box) {
-    var pre = box.querySelector("pre"), b = document.createElement("button");
-    b.type = "button"; b.className = "copy"; b.textContent = "Скопировать";
-    function done(ok) {
-      b.textContent = ok ? "Скопировано" : "Выделено, жми Ctrl+C"; b.classList.toggle("done", ok);
-      setTimeout(function () { b.textContent = "Скопировать"; b.classList.remove("done"); }, 1800);
-    }
-    function select() {
-      var r = document.createRange(); r.selectNodeContents(pre);
-      var s = getSelection(); s.removeAllRanges(); s.addRange(r); done(false);
-    }
-    b.addEventListener("click", function () {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(pre.textContent).then(function () { done(true); }, select);
-      } else { select(); }
-    });
-    box.appendChild(b);
-  });
-
-  /* ---------- оглавление ---------- */
-  var links = Array.prototype.slice.call(document.querySelectorAll(".toc a"));
-  if ("IntersectionObserver" in window) {
-    var seen = {};
-    var io = new IntersectionObserver(function (es) {
-      es.forEach(function (e) { seen[e.target.id] = e.isIntersecting; });
-      var first = null;
-      links.forEach(function (l) { var id = l.getAttribute("href").slice(1); if (first === null && seen[id]) first = id; });
-      links.forEach(function (l) { l.classList.toggle("on", l.getAttribute("href").slice(1) === first); });
-    }, { rootMargin: "-20% 0px -55% 0px" });
-    links.forEach(function (l) { var el = $(l.getAttribute("href").slice(1)); if (el) io.observe(el); });
-  }
-})();
-</script>
+<script src="site.js"></script>
 </body>
 </html>
